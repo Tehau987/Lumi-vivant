@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10172A">
+  <title>Lumi Vivant — le compagnon de ton appareil</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <h1 id="petName">Lumi</h1>
+      <p class="subtitle">Le compagnon vivant de ton appareil</p>
+    </div>
+    <span class="source-chip" id="sourceChip">Navigateur seul</span>
+  </header>
+
+  <main class="layout">
+    <section class="habitat-card" aria-label="Lumi">
+      <div class="habitat" id="habitat" data-period="jour">
+        <div class="sky-deco" aria-hidden="true">
+          <span class="sun"></span>
+          <span class="moon"></span>
+          <span class="stars"></span>
+        </div>
+        <div class="ground" aria-hidden="true"></div>
+        <button type="button" id="pet" class="lumi pet" aria-label="Caresser Lumi"></button>
+        <div class="bubble" id="bubble" role="status" aria-live="polite"></div>
+      </div>
+      <div class="pet-info">
+        <div class="row">
+          <strong class="stage-name" id="stageName">Œuf</strong>
+          <span class="age" id="ageText"></span>
+        </div>
+        <div class="grow">
+          <div class="bar" role="progressbar" aria-label="Croissance" aria-valuemin="0" aria-valuemax="100" id="growBarWrap"><div class="fill" id="growBar"></div></div>
+          <span class="muted small" id="growText"></span>
+        </div>
+        <p class="variant" id="variantText" hidden></p>
+        <p class="feeling" id="feeling" role="status" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <div class="side">
+      <section class="card" aria-labelledby="vitalsTitle">
+        <div class="row">
+          <h2 id="vitalsTitle">Santé</h2>
+          <span class="health-score"><strong id="healthValue">–</strong> / 100</span>
+        </div>
+        <div class="vitals" id="vitals"></div>
+      </section>
+
+      <section class="card" aria-labelledby="usageTitle">
+        <h2 id="usageTitle">Ton temps d'écran</h2>
+        <div class="usage-grid" id="usageGrid"></div>
+        <div class="actions">
+          <button type="button" class="btn primary" id="breakBtn">Je fais une pause (5 min)</button>
+          <button type="button" class="btn" id="idleBtn" hidden>Détecter mes pauses automatiquement</button>
+        </div>
+        <p class="muted small" id="usageNote"></p>
+      </section>
+
+      <section class="card" aria-labelledby="chartTitle">
+        <h2 id="chartTitle">Carnet de santé · 24 h</h2>
+        <div class="chart" id="chart"></div>
+        <p class="muted small" id="chartSummary"></p>
+        <details>
+          <summary>Voir les valeurs heure par heure</summary>
+          <table class="values" id="chartTable"></table>
+        </details>
+      </section>
+
+      <section class="card" aria-labelledby="settingsTitle">
+        <h2 id="settingsTitle">Réglages</h2>
+        <label class="field" for="nameInput">Nom de ton compagnon
+          <input id="nameInput" type="text" maxlength="24" autocomplete="off">
+        </label>
+        <label class="field" for="speedSelect">Vitesse du temps
+          <select id="speedSelect"></select>
+        </label>
+        <div class="sensor" id="sensorInfo"></div>
+        <div class="actions">
+          <button type="button" class="btn" id="exportBtn">Exporter</button>
+          <button type="button" class="btn" id="importBtn">Importer</button>
+          <button type="button" class="btn" id="resetBtn">Nouvel œuf</button>
+          <input type="file" id="importFile" accept="application/json,.json" hidden>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div class="overlay" id="evoOverlay" hidden>
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="evoTitle">
+      <span class="kicker">IL GRANDIT !</span>
+      <h2 id="evoTitle"></h2>
+      <div class="evo-creatures">
+        <div class="lumi evo-before" id="evoBefore"></div>
+        <svg class="evo-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6l6 6-6 6M12 6l6 6-6 6"/></svg>
+        <div class="lumi evo-after" id="evoAfter"></div>
+      </div>
+      <p id="evoText"></p>
+      <button type="button" class="btn accent" id="evoClose">Continuer</button>
+    </div>
+  </div>
+
+  <div class="overlay" id="breakOverlay" hidden>
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="breakTitle">
+      <span class="kicker">PAUSE</span>
+      <h2 id="breakTitle">Lumi fait la sieste</h2>
+      <div class="lumi c-sleepy break-pet" id="breakPet"></div>
+      <p class="countdown" id="breakCountdown">5:00</p>
+      <p>Lève-toi, étire-toi, regarde au loin. Reviens quand le minuteur est fini.</p>
+      <button type="button" class="btn" id="breakStop">Arrêter la pause</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/vie.js"></script>
+  <script src="js/creature.js"></script>
+  <script src="js/capteurs.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

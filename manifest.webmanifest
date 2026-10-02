@@ -1,0 +1,15 @@
+{
+  "name": "Lumi Vivant",
+  "short_name": "Lumi",
+  "description": "Un compagnon qui grandit avec le temps et vit au rythme de la santé de ton appareil.",
+  "lang": "fr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#EEF2F6",
+  "theme_color": "#10172A",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
