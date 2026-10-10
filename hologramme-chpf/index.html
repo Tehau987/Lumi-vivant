@@ -1,0 +1,1620 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hologramme du CHPF</title>
+<meta name="description" content="Hologramme 3D schématique du bâtiment principal du Centre hospitalier de la Polynésie française, à l'hôpital du Taaone (Pirae).">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#04090f">
+<style>
+/* Salle de projection : l'hologramme occupe la scène, le pupitre (niveaux, secteurs, fiche)
+   se tient à droite et passe dessous sur téléphone. Un seul thème, sombre, voulu :
+   un hologramme ne se voit bien que dans le noir. */
+:root {
+  --nuit: #04090f;
+  --panneau: #071520;
+  --lueur: #0c2a3a;
+  --trait: #183a52;
+  --faisceau: #7ff3ff;
+  --mer: #5cb8ff;
+  --nef: #ffd6a0;
+  --montagne: #6effb4;
+  --balise: #ffb35c;
+  --texte: #ddf6ff;
+  --texte-doux: #8fb3c4;
+  --f-titre: Bahnschrift, "DIN Alternate", "DIN Condensed", "Roboto Condensed", "Arial Narrow", system-ui, sans-serif;
+  --f-texte: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --f-mono: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, monospace;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--nuit); color: var(--texte); font: 15px/1.5 var(--f-texte); }
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--faisceau); outline-offset: 3px; }
+.vh {
+  position: absolute !important; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* ---------- Page ---------- */
+.page {
+  display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 14px;
+  height: 100%; min-height: 560px; max-width: 1480px; margin: 0 auto;
+  padding-block: 14px 16px; padding-inline: 16px;
+}
+.entete { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 16px; }
+.surtitre {
+  margin: 0; color: var(--texte-doux);
+  font: 600 12px/1.4 var(--f-mono); letter-spacing: .12em; text-transform: uppercase;
+}
+h1 { margin: 2px 0 0; font: 600 clamp(26px, 3.4vw, 36px)/1.05 var(--f-titre); letter-spacing: .02em; text-wrap: balance; }
+.badge {
+  margin: 0; padding: 5px 10px; border: 1px solid var(--balise); border-radius: 3px; color: var(--balise);
+  font: 600 11px/1.3 var(--f-mono); letter-spacing: .14em; text-transform: uppercase;
+}
+.salle { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; min-height: 0; }
+
+/* ---------- Scène ---------- */
+.scene {
+  position: relative; display: flex; flex-direction: column; min-height: 0; overflow: hidden;
+  border: 1px solid var(--trait); border-radius: 6px;
+  background: radial-gradient(ellipse 70% 60% at 50% 62%, var(--lueur), var(--nuit) 72%);
+}
+.ecran { position: relative; flex: 1 1 auto; min-height: 0; }
+.ecran canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+#halo { filter: blur(7px) saturate(1.25); opacity: .9; pointer-events: none; }
+#holo { touch-action: none; cursor: grab; }
+#holo.saisi { cursor: grabbing; }
+#holo:focus-visible { outline-offset: -4px; }
+.trame {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 50%, transparent 58%, color-mix(in srgb, var(--nuit) 75%, transparent) 100%),
+    repeating-linear-gradient(to bottom, color-mix(in srgb, var(--faisceau) 5%, transparent) 0 1px, transparent 1px 3px);
+}
+.coins span { position: absolute; width: 18px; height: 18px; border: 0 solid var(--faisceau); opacity: .5; pointer-events: none; }
+.coins span:nth-child(1) { top: 8px; left: 8px; border-top-width: 1px; border-left-width: 1px; }
+.coins span:nth-child(2) { top: 8px; right: 8px; border-top-width: 1px; border-right-width: 1px; }
+.coins span:nth-child(3) { bottom: 8px; left: 8px; border-bottom-width: 1px; border-left-width: 1px; }
+.coins span:nth-child(4) { bottom: 8px; right: 8px; border-bottom-width: 1px; border-right-width: 1px; }
+.hud {
+  position: absolute; top: 16px; left: 20px; display: flex; flex-direction: column; gap: 1px;
+  color: var(--texte-doux); font: 500 11px/1.45 var(--f-mono); letter-spacing: .1em;
+  font-variant-numeric: tabular-nums; pointer-events: none;
+}
+.hud b { color: var(--faisceau); font-weight: 600; }
+.geste {
+  position: absolute; left: 50%; bottom: 14px; width: max-content; max-width: calc(100% - 48px); margin: 0;
+  transform: translateX(-50%); color: var(--texte-doux); font: 11px/1.4 var(--f-mono); letter-spacing: .04em;
+  text-align: center; pointer-events: none; transition: opacity .6s ease;
+}
+.geste.vu { opacity: 0; }
+.bulle {
+  position: absolute; z-index: 2; padding: 4px 8px; border: 1px solid var(--trait); border-radius: 3px;
+  background: color-mix(in srgb, var(--nuit) 88%, transparent); color: var(--texte);
+  font: 600 12px/1.3 var(--f-mono); white-space: nowrap; pointer-events: none; transform: translate(14px, -50%);
+}
+.bulle.gauche { transform: translate(calc(-100% - 14px), -50%); }
+
+.barre {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px;
+  padding: 10px 12px; border-top: 1px solid var(--trait); background: var(--panneau);
+}
+.groupe { display: flex; flex-wrap: wrap; gap: 6px; }
+.bouton {
+  min-height: 44px; padding: 0 12px; border: 1px solid var(--trait); border-radius: 3px; background: transparent;
+  font: 600 12px/1 var(--f-mono); letter-spacing: .08em; text-transform: uppercase;
+}
+.bouton:hover { border-color: var(--faisceau); }
+.bouton[aria-pressed="true"] { border-color: var(--faisceau); background: var(--faisceau); color: var(--nuit); }
+.bouton .court { display: none; }
+.plein { width: 100%; }
+
+/* ---------- Pupitre ---------- */
+.pupitre { display: flex; flex-direction: column; gap: 12px; min-height: 0; overflow-y: auto; }
+.bloc { padding: 14px; border: 1px solid var(--trait); border-radius: 6px; background: var(--panneau); }
+.bloc h2 {
+  margin: 0 0 10px; color: var(--texte-doux);
+  font: 600 11px/1.3 var(--f-mono); letter-spacing: .14em; text-transform: uppercase;
+}
+.bloc p { margin: 0 0 10px; }
+
+/* Les niveaux se choisissent comme dans un ascenseur. */
+.ascenseur { display: flex; flex-direction: column; gap: 4px; margin: 0 0 10px; padding: 0; list-style: none; }
+.etage {
+  display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: center; gap: 12px;
+  width: 100%; min-height: 48px; padding: 2px 8px 2px 2px; border: 0; border-radius: 26px 4px 4px 26px;
+  background: none; text-align: left;
+}
+.etage:hover { background: color-mix(in srgb, var(--faisceau) 7%, transparent); }
+.cabine {
+  display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid var(--trait); border-radius: 50%;
+  color: var(--faisceau); font: 600 15px/1 var(--f-mono);
+}
+.etage[aria-pressed="true"] .cabine {
+  border-color: var(--faisceau); background: var(--faisceau); color: var(--nuit);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--faisceau) 55%, transparent);
+}
+.quoi { min-width: 0; }
+.quoi strong { display: block; font: 600 15px/1.2 var(--f-titre); letter-spacing: .02em; }
+.quoi small { display: block; color: var(--texte-doux); font-size: 13px; line-height: 1.3; }
+
+.secteurs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.secteur {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-height: 64px; padding: 8px 10px;
+  border: 1px solid var(--trait); border-radius: 3px; background: none; text-align: left;
+}
+.secteur::before { content: ""; width: 24px; height: 3px; border-radius: 2px; background: var(--c); box-shadow: 0 0 8px var(--c); }
+.secteur strong { font: 600 15px/1.15 var(--f-titre); }
+.secteur small { color: var(--texte-doux); font-size: 12px; line-height: 1.25; }
+.secteur:hover { border-color: var(--c); }
+.secteur[aria-pressed="true"] {
+  border-color: var(--c); box-shadow: inset 0 0 0 1px var(--c);
+  background: color-mix(in srgb, var(--c) 10%, transparent);
+}
+
+.fiche .sur {
+  margin: 0; color: var(--faisceau);
+  font: 600 11px/1.3 var(--f-mono); letter-spacing: .14em; text-transform: uppercase;
+}
+.fiche h3 { margin: 4px 0 8px; font: 600 24px/1.1 var(--f-titre); letter-spacing: .01em; text-wrap: balance; }
+.fiche p { color: var(--texte-doux); }
+.fiche h4 {
+  margin: 14px 0 8px; color: var(--texte-doux);
+  font: 600 11px/1.3 var(--f-mono); letter-spacing: .12em; text-transform: uppercase;
+}
+.services { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.services li { padding-left: 12px; border-left: 2px solid var(--c, var(--faisceau)); }
+.services strong { display: block; font-weight: 600; }
+.services span { display: block; color: var(--texte-doux); font-size: 14px; }
+.services small { display: block; margin-top: 2px; color: var(--texte-doux); font: 11px/1.4 var(--f-mono); }
+.fiche .bouton { margin-top: 14px; }
+
+.reperes { display: grid; grid-template-columns: 6.6rem minmax(0, 1fr); gap: 12px; margin: 0; }
+.reperes dt { color: var(--faisceau); font: 600 19px/1.2 var(--f-titre); font-variant-numeric: tabular-nums; }
+.reperes dd { margin: 0; font-size: 14px; }
+.reperes small { display: block; margin-top: 2px; color: var(--texte-doux); font: 11px/1.4 var(--f-mono); }
+
+.note { color: var(--texte-doux); font-size: 13px; }
+details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); font-weight: 600; }
+.sources { margin: 8px 0 0; padding-left: 18px; color: var(--texte-doux); font-size: 13px; }
+.sources li + li { margin-top: 6px; }
+
+@media (max-width: 900px) {
+  .page { height: auto; min-height: 0; grid-template-rows: auto auto; }
+  .salle { grid-template-columns: minmax(0, 1fr); }
+  .scene { height: clamp(400px, 72vh, 640px); height: clamp(400px, 72svh, 640px); }
+  .pupitre { overflow: visible; }
+}
+@media (max-width: 560px) {
+  .barre { justify-content: flex-start; }
+  .bouton { padding: 0 9px; font-size: 11px; letter-spacing: .04em; }
+  .bouton .long { display: none; }
+  .bouton .court { display: inline; }
+}
+@media (max-width: 420px) {
+  .secteurs { grid-template-columns: minmax(0, 1fr); }
+  .secteur { flex-direction: row; align-items: center; gap: 10px; min-height: 48px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="entete">
+    <div>
+      <p class="surtitre">CHPF · Hôpital du Taaone · Pirae, Tahiti</p>
+      <h1>Hologramme du bâtiment</h1>
+    </div>
+    <p class="badge">Schéma non officiel</p>
+  </header>
+
+  <main class="salle">
+    <section class="scene" aria-labelledby="titre-scene">
+      <h2 id="titre-scene" class="vh">Vue 3D du bâtiment</h2>
+      <div class="ecran" id="ecran">
+        <canvas id="halo" aria-hidden="true"></canvas>
+        <canvas id="holo" tabindex="0" role="img" aria-describedby="aide-clavier"
+          aria-label="Hologramme 3D du bâtiment principal du CHPF : une longue pirogue de 5 niveaux, du −1 au 3, avec Pae miti côté mer en bleu, la nef au centre en beige, Pae mou'a côté montagne en vert, et l'hélistation sur le toit."></canvas>
+        <div class="trame" aria-hidden="true"></div>
+        <div class="coins" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+        <div class="hud" aria-hidden="true">
+          <span>CAP <b id="hud-cap">000°</b></span>
+          <span>INCL <b id="hud-incl">00°</b></span>
+          <span>ZOOM <b id="hud-zoom">×1,0</b></span>
+          <span>VUE <b id="hud-sel">TOUT</b></span>
+        </div>
+        <p class="geste" id="geste" aria-hidden="true">Glisser pour tourner · molette pour zoomer · cliquer sur un étage pour le choisir</p>
+        <div class="bulle" id="bulle" hidden></div>
+      </div>
+      <div class="barre">
+        <div class="groupe" role="group" aria-label="Point de vue">
+          <button type="button" class="bouton" id="vue-perspective" data-vue="perspective" aria-label="Perspective"><span class="long">Perspective</span><span class="court">3D</span></button>
+          <button type="button" class="bouton" id="vue-plan" data-vue="plan">Plan</button>
+          <button type="button" class="bouton" id="vue-elevation" data-vue="elevation">Élévation</button>
+        </div>
+        <div class="groupe" role="group" aria-label="Affichage">
+          <button type="button" class="bouton" id="b-rotation" aria-pressed="true">Rotation</button>
+          <button type="button" class="bouton" id="b-eclate" aria-pressed="false" aria-label="Vue éclatée"><span class="long">Vue éclatée</span><span class="court">Éclatée</span></button>
+          <button type="button" class="bouton" id="b-couleurs" aria-pressed="true" aria-label="Code couleur"><span class="long">Code couleur</span><span class="court">Couleurs</span></button>
+          <button type="button" class="bouton" id="b-recentrer">Recentrer</button>
+        </div>
+      </div>
+      <p class="vh" id="aide-clavier">Au clavier, sur l'hologramme : flèches pour tourner et incliner, plus et moins pour zoomer, E pour la vue éclatée, Page précédente et Page suivante pour changer de niveau, Échap pour tout afficher.</p>
+    </section>
+
+    <aside class="pupitre" aria-label="Pupitre de commande">
+      <section class="bloc" aria-labelledby="t-niveaux">
+        <h2 id="t-niveaux">Niveaux</h2>
+        <ol class="ascenseur" id="ascenseur"></ol>
+        <button type="button" class="bouton plein" id="b-tout">Tout le bâtiment</button>
+      </section>
+
+      <section class="bloc" aria-labelledby="t-secteurs">
+        <h2 id="t-secteurs">Secteurs · code couleur du CHPF</h2>
+        <div class="secteurs" id="secteurs"></div>
+      </section>
+
+      <section class="bloc fiche" id="fiche" aria-label="Fiche"></section>
+
+      <section class="bloc" aria-labelledby="t-reperes">
+        <h2 id="t-reperes">Repères</h2>
+        <dl class="reperes" id="reperes"></dl>
+      </section>
+
+      <section class="bloc" aria-labelledby="t-sources">
+        <h2 id="t-sources">Sources et limites</h2>
+        <p class="note">Ce schéma interprète des documents publics parus entre 2010 et 2022. La forme, les proportions et la place des services sont approximatives et ont pu changer. Ce n'est pas un document officiel du CHPF : sur place, la signalétique fait foi.</p>
+        <p class="note">La page fonctionne hors ligne et n'envoie aucune donnée.</p>
+        <details>
+          <summary>Voir les sources</summary>
+          <ul class="sources" id="sources"></ul>
+        </details>
+      </section>
+    </aside>
+  </main>
+  <p class="vh" id="annonce" aria-live="polite"></p>
+  <noscript><p>Cette page a besoin de JavaScript pour afficher l'hologramme.</p></noscript>
+</div>
+
+<script>
+/*
+ * Hologramme du CHPF — le bâtiment principal de l'hôpital du Taaone, en 3D.
+ *
+ * Tout est dans ce fichier, sans bibliothèque : le dessin se fait sur un canevas 2D,
+ * avec une petite projection en perspective faite à la main. Les traits s'additionnent
+ * (mode « lighter »), comme la lumière d'un vrai hologramme : pas besoin de les trier.
+ */
+(function () {
+  'use strict';
+
+  document.documentElement.lang = 'fr';
+  const $ = id => document.getElementById(id);
+
+  /* ======================================================================
+   * 1. LES DONNÉES — à corriger ici si un service change de place.
+   *    k : le niveau (−1 à 3 ; 4 = le toit).
+   *    s : le secteur ('mer', 'centre' ou 'montagne'),
+   *        ou null quand les sources ne disent pas de quel côté.
+   * ====================================================================== */
+
+  // Dans l'ordre du bâtiment, de la montagne vers la mer (x en mètres approximatifs).
+  const SECTEURS = [
+    { id: 'montagne', nom: "Pae mou'a", sens: 'côté montagne', couleur: 'montagne', x0: -120, x1: -30,
+      resume: "L'extrémité côté montagne. Ses repères sont verts." },
+    { id: 'centre', nom: 'Centre', sens: 'atrium et nef', couleur: 'nef', x0: -30, x1: 30,
+      resume: "Le milieu de la pirogue : l'atrium et la nef monumentale de béton, de verre et de métal, qui sert de hall d'entrée. Ses repères sont beiges." },
+    { id: 'mer', nom: 'Pae miti', sens: 'côté mer', couleur: 'mer', x0: 30, x1: 120,
+      resume: "L'extrémité côté mer. Ses repères sont bleus." }
+  ];
+
+  // Du haut vers le bas, comme sur un panneau d'ascenseur.
+  const NIVEAUX = [
+    { k: 4, nom: 'Toit', touche: 'T', quoi: 'Hélistation, verrière',
+      resume: "Le toit porte l'hélistation des transports sanitaires et la verrière de la nef." },
+    { k: 3, nom: 'Niveau 3', touche: '3', quoi: 'Hospitalisation, direction',
+      resume: "Des services d'hospitalisation (cardiologie, pneumologie, neurologie, hématologie, neurochirurgie) et la direction." },
+    { k: 2, nom: 'Niveau 2', touche: '2', quoi: 'Laboratoire',
+      resume: "Le laboratoire s'y trouve. Les autres services de ce niveau ne sont pas localisés dans les documents publics consultés." },
+    { k: 1, nom: 'Niveau 1', touche: '1', quoi: 'Hall, admissions, consultations',
+      resume: "Le niveau d'entrée : le hall de la nef avec les admissions et la caisse centrale, les consultations et la dépose minute côté mer." },
+    { k: 0, nom: 'Niveau 0', touche: '0', quoi: 'Urgences, SAMU, imagerie',
+      resume: "Les urgences, le SAMU et l'UHCD côté mer, et l'imagerie médicale." },
+    { k: -1, nom: 'Niveau −1', touche: '−1', quoi: 'Parking',
+      resume: 'Le niveau −1, en sous-sol, accueille le parking. Ses piliers sont peints en bleu, beige ou vert selon le secteur, pour se repérer.' }
+  ];
+
+  const SERVICES = [
+    { k: -1, s: null, nom: 'Parking', detail: 'Piliers aux couleurs des secteurs : bleu, beige, vert.',
+      source: 'CHPF, Plan et accès' },
+    { k: 0, s: 'mer', nom: "Service d'accueil des urgences (SAU)",
+      detail: "Ouvert jour et nuit ; deux infirmiers d'accueil et d'orientation trient les arrivées.",
+      source: 'CHPF, présentation Urgences-SAMU (2020)' },
+    { k: 0, s: 'mer', nom: 'SAMU', detail: "Il centralise les appels d'urgence de toute la Polynésie.",
+      source: 'CHPF (2020) ; Le Quotidien du Médecin (2010)' },
+    { k: 0, s: 'mer', nom: 'UHCD', detail: "Unité d'hospitalisation de courte durée : 12 lits.",
+      source: 'CHPF, présentation Urgences-SAMU (2020)' },
+    { k: 0, s: null, nom: 'Imagerie médicale', detail: 'Radiologie ; sa caisse est au niveau 0.',
+      source: 'CHPF, Tarifs et paiements' },
+    { k: 1, s: 'centre', nom: "Hall d'entrée, dans la nef", detail: 'Accueil des admissions et caisse centrale.',
+      source: 'CHPF, Formalités administratives ; Tarifs et paiements' },
+    { k: 1, s: 'mer', nom: 'Accueil des consultations', detail: null,
+      source: 'CHPF, annuaire des consultations (2019)' },
+    { k: 1, s: 'mer', nom: 'Dépose minute', detail: "Pour déposer un patient au plus près de l'entrée.",
+      source: "CHPF, livret d'accueil" },
+    { k: 1, s: 'mer', nom: 'Consultations', detail: 'Anesthésie, chirurgie vasculaire, gynécologie.',
+      source: 'Annuaires des consultations' },
+    { k: 1, s: null, nom: 'Consultations de neurochirurgie', detail: null,
+      source: 'CHPF, service de neurochirurgie (2018)' },
+    { k: 2, s: null, nom: 'Laboratoire', detail: 'La caisse du laboratoire est au niveau 2.',
+      source: 'CHPF, Tarifs et paiements' },
+    { k: 3, s: 'montagne', nom: 'Cardiologie, pneumologie, neurologie, hématologie', detail: "Services d'hospitalisation.",
+      source: 'CHPF, plan par niveau (2018)' },
+    { k: 3, s: 'montagne', nom: 'Centre de la douleur', detail: 'Consultations.',
+      source: 'Annuaires des consultations' },
+    { k: 3, s: 'mer', nom: 'Direction et administration', detail: null,
+      source: 'CHPF, annuaire (2019)' },
+    { k: 3, s: null, nom: 'Neurochirurgie', detail: 'Hospitalisation : 8 lits en chambres individuelles.',
+      source: 'CHPF, service de neurochirurgie (2018)' },
+    { k: 4, s: 'mer', nom: 'Hélistation',
+      detail: "Réservée aux transports sanitaires et aux vols médicaux d'urgence ; Taravao n'est qu'à 18 minutes de vol. Sa place exacte sur le toit est schématique.",
+      source: "SIA, fiche de l'hélistation ; Direction de la santé" },
+    { k: 4, s: 'centre', nom: 'Verrière de la nef',
+      detail: 'Le hall monumental de béton, de verre et de métal. La forme de sa couverture est schématique.',
+      source: 'Tahiti Infos (2013) ; Arcora' }
+  ];
+
+  const REPERES = [
+    { valeur: '5 niveaux', texte: 'Du −1 (parking) au 3, plus le toit et son hélistation.', source: 'CHPF, Plan et accès' },
+    { valeur: '≈ 100 000 m²', texte: "De surfaces, contre 30 000 m² dans l'ancien hôpital du Mamao.", source: 'Chambre territoriale des comptes' },
+    { valeur: '490 lits', texte: 'Installés en 2019, dont 66 en psychiatrie.', source: "CHPF, rapport d'activité 2019" },
+    { valeur: '8 salles', texte: 'Au bloc opératoire central, avec 24 lits de réanimation (2019).', source: "CHPF, rapport d'activité 2019" },
+    { valeur: '2010', texte: 'Le déménagement du Mamao vers le Taaone, du 16 octobre au 11 novembre.', source: "CHPF, historique et livret d'accueil" },
+    { valeur: '900 m', texte: "La profondeur où le SWAC puise l'eau de mer, vers 5 °C, pour climatiser l'hôpital : 3,8 km de canalisation, 6 MW de froid, depuis juillet 2022.", source: 'Service des énergies de la Polynésie française' }
+  ];
+
+  const SOURCES = [
+    "CHPF (chpf.pf), « Plan et accès » : forme en pirogue, Pae miti et Pae mou'a, code couleur, 5 niveaux, parking au niveau −1.",
+    "CHPF, livret d'accueil et pages « Formalités administratives » et « Tarifs et paiements » : hall, caisse centrale, dépose minute.",
+    'CHPF, présentations des services Urgences-SAMU (2020) et Neurochirurgie (2018), plan par niveau (2018), annuaires (2019).',
+    "CHPF, rapport d'activité 2019 : lits, bloc opératoire, réanimation.",
+    'Chambre territoriale des comptes de la Polynésie française, rapport sur le CHPF : surfaces.',
+    'Service des énergies de la Polynésie française, fiche du SWAC du CHPF (2022).',
+    "Service de l'information aéronautique, fiche de l'hélistation du CHPF ; Direction de la santé, hélistation de Taravao.",
+    'Tahiti Infos (2013) et Arcora : la nef, hall monumental de béton, de verre et de métal.',
+    'Le Quotidien du Médecin (2010) : ouverture, coût, centralisation des appels d\'urgence.'
+  ];
+
+  const PRESENTATION = "Le bâtiment principal du CHPF s'étire tout en longueur, comme une pirogue. Ses deux extrémités s'appellent Pae miti, côté mer, et Pae mou'a, côté montagne ; au centre, la nef vitrée sert de hall d'entrée. Un code couleur aide à s'orienter : bleu côté mer, beige au centre, vert côté montagne. Le bâtiment compte 5 niveaux, du −1 au 3, et une hélistation sur le toit.";
+
+  /* ======================================================================
+   * 2. LA FORME — un schéma en mètres approximatifs, pas un relevé.
+   *    x va de la montagne (−) vers la mer (+), y monte, z traverse.
+   * ====================================================================== */
+
+  const H = 4.6;                 // hauteur d'un niveau
+  const TOIT = 4;                // le toit est rangé comme un « niveau 4 »
+  const BOUT = 120;              // demi-longueur du bâtiment
+  const DEMI_LARGEUR = 21;
+  const DEMI_LARGEUR_NEF = 26;
+  const ECART = 7;               // écart ajouté entre deux niveaux en vue éclatée
+  const FIXE = -9;               // marque un élément qui ne bouge pas en vue éclatée
+  const Y_PROJECTEUR = -14;
+  const RAYON_DISQUE = 205;
+
+  // Demi-largeur de la « pirogue » : droite au milieu, effilée vers les deux bouts.
+  function demiLargeur(x, secteur) {
+    if (secteur === 'centre') return DEMI_LARGEUR_NEF;
+    const a = Math.abs(x);
+    if (a <= 72) return DEMI_LARGEUR;
+    const t = Math.min(1, (a - 72) / (BOUT - 72));
+    return DEMI_LARGEUR * (1 - 0.55 * t * t);
+  }
+
+  const sommets = { x: [], y: [], z: [], e: [] };
+  const lots = [];               // des traits de même style, rattachés à une cellule ou au décor
+  const cellules = new Map();    // une cellule = un secteur d'un niveau (ex. « 0|mer »)
+  const feux = [];               // les balises de l'hélistation
+
+  function sommet(x, y, z, e) {
+    sommets.x.push(x); sommets.y.push(y); sommets.z.push(z); sommets.e.push(e);
+    return sommets.x.length - 1;
+  }
+
+  function lot(options) {
+    const l = Object.assign({
+      cellule: null, couleur: 'faisceau', alpha: 0.8, largeur: 1,
+      tirets: null, remplissage: 0, flux: false, segs: [], polys: []
+    }, options);
+    lots.push(l);
+    return l;
+  }
+
+  function relier(l, a, b) { l.segs.push(a, b); }
+
+  function chaine(l, indices, fermee) {
+    for (let i = 0; i < indices.length - 1; i++) relier(l, indices[i], indices[i + 1]);
+    if (fermee) relier(l, indices[indices.length - 1], indices[0]);
+  }
+
+  function graduations(a, b, ecart) {
+    const n = Math.max(1, Math.round(Math.abs(b - a) / ecart));
+    const xs = [];
+    for (let i = 0; i <= n; i++) xs.push(a + (b - a) * i / n);
+    return xs;
+  }
+
+  function cellule(k, s) {
+    const cle = k + '|' + s;
+    if (!cellules.has(cle)) cellules.set(cle, { cle: cle, k: k, s: s, points: [], vis: 1, survol: 0 });
+    return cellules.get(cle);
+  }
+
+  // Contour d'un secteur à la hauteur y : le long du côté +z, puis retour par le côté −z.
+  function contour(sec, y, e) {
+    const xs = graduations(sec.x0, sec.x1, 6);
+    const aller = xs.map(x => sommet(x, y, demiLargeur(x, sec.id), e));
+    const retour = xs.slice().reverse().map(x => sommet(x, y, -demiLargeur(x, sec.id), e));
+    return { aller: aller, retour: retour, tour: aller.concat(retour) };
+  }
+
+  // Deux contours superposés et leurs quatre arêtes d'angle.
+  function caisson(l, bas, haut) {
+    chaine(l, bas.tour, true);
+    chaine(l, haut.tour, true);
+    const m = bas.aller.length;
+    const n = bas.tour.length;
+    [0, m - 1, m, n - 1].forEach(i => relier(l, bas.tour[i], haut.tour[i]));
+  }
+
+  function construireNiveau(k, sec) {
+    const c = cellule(k, sec.id);
+    const sousSol = k < 0;
+    const y0 = k * H;
+    const bas = contour(sec, y0, k);
+    const haut = contour(sec, y0 + H - 0.8, k);
+
+    const cadre = lot({ cellule: c.cle, couleur: sec.couleur, alpha: 0.85, largeur: 1.2,
+      tirets: sousSol ? [5, 4] : null, remplissage: 0.04 });
+    caisson(cadre, bas, haut);
+    const dalle = [bas.tour];
+    if (sec.id === 'centre' && k >= 2) dalle.push(atrium(c, y0, k));
+    cadre.polys.push(dalle);
+    c.points = bas.tour.concat(haut.tour);
+
+    if (sousSol) {
+      piliers(c, sec, y0, y0 + H);
+      return;
+    }
+    // Façades : un meneau tous les 6 m et un bandeau de fenêtres.
+    const facade = lot({ cellule: c.cle, couleur: sec.couleur, alpha: 0.3 });
+    for (let i = 1; i < bas.aller.length - 1; i++) {
+      relier(facade, bas.aller[i], haut.aller[i]);
+      relier(facade, bas.retour[i], haut.retour[i]);
+    }
+    const bandeau = contour(sec, y0 + H * 0.55, k);
+    chaine(facade, bandeau.aller, false);
+    chaine(facade, bandeau.retour, false);
+  }
+
+  // L'atrium : le vide de la nef traverse les dalles, enjambé par des passerelles.
+  function atrium(c, y, k) {
+    const l = lot({ cellule: c.cle, couleur: 'nef', alpha: 0.7 });
+    const trou = [[-13, -9], [13, -9], [13, 9], [-13, 9]].map(p => sommet(p[0], y, p[1], k));
+    chaine(l, trou, true);
+    [-1.6, 1.6].forEach(z => relier(l, sommet(-13, y + 0.15, z, k), sommet(13, y + 0.15, z, k)));
+    return trou;
+  }
+
+  // Au niveau −1, les piliers du parking sont peints aux couleurs du secteur.
+  function piliers(c, sec, y0, y1) {
+    const l = lot({ cellule: c.cle, couleur: sec.couleur, alpha: 0.55, largeur: 1.4 });
+    for (let x = sec.x0 + 5; x <= sec.x1 - 4; x += 9) {
+      const w = demiLargeur(x, sec.id) - 3;
+      for (let z = -16; z <= 16; z += 8) {
+        if (Math.abs(z) <= w) relier(l, sommet(x, y0, z, -1), sommet(x, y1, z, -1));
+      }
+    }
+  }
+
+  function construireToit(sec) {
+    const c = cellule(TOIT, sec.id);
+    const y0 = TOIT * H;
+    const bas = contour(sec, y0, TOIT);
+    const haut = contour(sec, y0 + 1.1, TOIT);
+    const cadre = lot({ cellule: c.cle, couleur: sec.couleur, alpha: 0.7, largeur: 1.1, remplissage: 0.03 });
+    caisson(cadre, bas, haut);
+    cadre.polys.push([bas.tour]);
+    c.points = bas.tour.concat(haut.tour);
+    if (sec.id === 'mer') helistation(c, y0 + 1.1);
+    if (sec.id === 'centre') verriere(c, y0 + 1.1);
+    if (sec.id === 'montagne') locauxTechniques(c, y0 + 1.1);
+  }
+
+  function helistation(c, y0) {
+    const l = lot({ cellule: c.cle, couleur: 'balise', alpha: 0.9, largeur: 1.3, remplissage: 0.08 });
+    const cx = 95;
+    const d = 11;
+    const y = y0 + 1.6;
+    const coins = [[-d, -d], [d, -d], [d, d], [-d, d]];
+    const plateau = coins.map(p => sommet(cx + p[0], y, p[1], TOIT));
+    chaine(l, plateau, true);
+    l.polys.push([plateau]);
+    coins.forEach((p, i) => relier(l, plateau[i], sommet(cx + p[0], y0, p[1], TOIT)));
+    const rond = [];
+    for (let i = 0; i < 36; i++) {
+      const a = i / 36 * Math.PI * 2;
+      rond.push(sommet(cx + Math.cos(a) * 8, y, Math.sin(a) * 8, TOIT));
+    }
+    chaine(l, rond, true);
+    // La lettre H, lisible depuis la façade avant.
+    const trait = (x1, z1, x2, z2) => relier(l, sommet(cx + x1, y, z1, TOIT), sommet(cx + x2, y, z2, TOIT));
+    trait(-3, -4.5, -3, 4.5);
+    trait(3, -4.5, 3, 4.5);
+    trait(-3, 0, 3, 0);
+    coins.concat([[0, -d], [d, 0], [0, d], [-d, 0]])
+      .forEach(p => feux.push(sommet(cx + p[0], y + 0.2, p[1], TOIT)));
+    c.points = c.points.concat(plateau);
+  }
+
+  // La verrière : une voûte d'arcs vitrés au-dessus de la nef.
+  function verriere(c, y0) {
+    const l = lot({ cellule: c.cle, couleur: 'nef', alpha: 0.75, largeur: 1.1 });
+    const n = 10;
+    const zs = graduations(-DEMI_LARGEUR_NEF, DEMI_LARGEUR_NEF, 6.5);
+    const arcs = zs.map(z => {
+      const arc = [];
+      for (let i = 0; i <= n; i++) {
+        const u = i / n;
+        arc.push(sommet(-18 + 36 * u, y0 + 7 * Math.sin(Math.PI * u), z, TOIT));
+      }
+      chaine(l, arc, false);
+      return arc;
+    });
+    for (let i = 0; i <= n; i += 2) chaine(l, arcs.map(a => a[i]), false);
+    [0, zs.length - 1].forEach(j => {
+      for (let i = 2; i < n; i += 2) relier(l, arcs[j][i], sommet(-18 + 36 * i / n, y0, zs[j], TOIT));
+    });
+    c.points = c.points.concat(arcs[0], arcs[zs.length - 1]);
+  }
+
+  function locauxTechniques(c, y0) {
+    const l = lot({ cellule: c.cle, couleur: 'montagne', alpha: 0.45 });
+    [[-96, -80, -8, 8, 2.6], [-64, -50, -13, -3, 2.2], [-64, -50, 3, 13, 2.2]]
+      .forEach(b => boite(l, b[0], b[1], b[2], b[3], y0, y0 + b[4], TOIT));
+  }
+
+  function boite(l, x0, x1, z0, z1, y0, y1, e) {
+    const coins = [[x0, z0], [x1, z0], [x1, z1], [x0, z1]];
+    const bas = coins.map(p => sommet(p[0], y0, p[1], e));
+    const haut = coins.map(p => sommet(p[0], y1, p[1], e));
+    chaine(l, bas, true);
+    chaine(l, haut, true);
+    for (let i = 0; i < 4; i++) relier(l, bas[i], haut[i]);
+  }
+
+  function cercle(y, r, n) {
+    const pts = [];
+    for (let i = 0; i < n; i++) {
+      const a = i / n * Math.PI * 2;
+      pts.push(sommet(Math.cos(a) * r, y, Math.sin(a) * r, FIXE));
+    }
+    return pts;
+  }
+
+  function construireDecor() {
+    // Le sol du site : un quadrillage limité au disque du projecteur.
+    const sol = lot({ alpha: 0.07 });
+    for (let v = -200; v <= 200; v += 20) {
+      const w = Math.sqrt(RAYON_DISQUE * RAYON_DISQUE - v * v);
+      relier(sol, sommet(v, 0, -w, FIXE), sommet(v, 0, w, FIXE));
+      relier(sol, sommet(-w, 0, v, FIXE), sommet(w, 0, v, FIXE));
+    }
+    // Le projecteur : deux anneaux, et des rayons qui montent vers le pied du bâtiment.
+    const disque = lot({ alpha: 0.32 });
+    chaine(disque, cercle(Y_PROJECTEUR, 150, 96), true);
+    chaine(disque, cercle(Y_PROJECTEUR, RAYON_DISQUE, 120), true);
+    const rayons = lot({ alpha: 0.07 });
+    for (let i = 0; i < 24; i++) {
+      const a = i / 24 * Math.PI * 2;
+      relier(rayons, sommet(Math.cos(a) * 150, Y_PROJECTEUR, Math.sin(a) * 150, FIXE),
+        sommet(Math.cos(a) * 128, -H, Math.sin(a) * 30, FIXE));
+    }
+    // Côté montagne : des courbes de niveau, pour s'orienter.
+    const relief = lot({ couleur: 'montagne', alpha: 0.38 });
+    for (let i = 0; i < 5; i++) {
+      const r0 = 30 - i * 6;
+      const tour = [];
+      for (let j = 0; j < 48; j++) {
+        const a = j / 48 * Math.PI * 2;
+        const r = r0 * (1 + 0.12 * Math.sin(3 * a + i) + 0.07 * Math.cos(5 * a - i));
+        tour.push(sommet(-170 + Math.cos(a) * r, i * 3.4, Math.sin(a) * r * 0.9, FIXE));
+      }
+      chaine(relief, tour, true);
+    }
+    // Le SWAC : la canalisation qui amène l'eau froide du large (tracé hors échelle).
+    const swac = lot({ couleur: 'mer', alpha: 0.85, largeur: 1.6, tirets: [7, 6], flux: true });
+    chaine(swac, [[112, -3, 9], [150, -3.4, 12], [176, -4.5, 13], [184, -16, 13], [190, -40, 13]]
+      .map(p => sommet(p[0], p[1], p[2], FIXE)), false);
+  }
+
+  SECTEURS.forEach(sec => {
+    for (let k = -1; k <= 3; k++) construireNiveau(k, sec);
+    construireToit(sec);
+  });
+  construireDecor();
+
+  const N = sommets.x.length;
+  const GX = Float32Array.from(sommets.x);
+  const GY = Float32Array.from(sommets.y);
+  const GZ = Float32Array.from(sommets.z);
+  const GE = Int8Array.from(sommets.e);
+  const PX = new Float32Array(N);
+  const PY = new Float32Array(N);
+  const PD = new Float32Array(N);   // profondeur ; −1 = derrière la caméra
+
+  // Le contour extérieur complet, pour le faisceau qui balaie le bâtiment.
+  const PROFIL = (function () {
+    const cote = [];
+    graduations(-BOUT, BOUT, 6).forEach(x => {
+      if (x === -30) cote.push([x, DEMI_LARGEUR], [x, DEMI_LARGEUR_NEF]);
+      else if (x === 30) cote.push([x, DEMI_LARGEUR_NEF], [x, DEMI_LARGEUR]);
+      else cote.push([x, Math.abs(x) < 30 ? DEMI_LARGEUR_NEF : demiLargeur(x, '')]);
+    });
+    return cote.concat(cote.slice().reverse().map(p => [p[0], -p[1]]));
+  })();
+
+  /* ======================================================================
+   * 3. LA CAMÉRA — elle tourne autour du bâtiment (cap), s'incline (incl)
+   *    et recule plus ou moins (recul).
+   * ====================================================================== */
+
+  const reduit = window.matchMedia('(prefers-reduced-motion: reduce)');
+  let calme = reduit.matches;
+
+  const etat = {
+    sel: { k: null, s: null },
+    survol: null,
+    rotation: !calme,
+    eclate: false,
+    explosion: 0,
+    couleurs: true,
+    derniereAction: -1e9,
+    scintil: 1,
+    intro: 0,
+    apparition: 0,
+    prochainGlitch: 6,
+    glitchFin: 0
+  };
+
+  const VUES = {
+    perspective: { cap: 0.62, incl: 0.36 },
+    plan: { cap: 0, incl: 1.52 },
+    elevation: { cap: 0, incl: 0.03 }
+  };
+
+  const cam = { cap: 0.62, incl: 0.36, recul: 320, capVise: 0.62, inclVise: 0.36, reculVise: 320 };
+  const ecran = { larg: 0, haut: 0, dpr: 1, f: 1, cx: 0, cy: 0, reculDefaut: 320 };
+  const base = { ty: 0, d: 0, ct: 1, st: 0, cp: 1, sp: 0 };
+  const P1 = { x: 0, y: 0, d: 0 };
+  const P2 = { x: 0, y: 0, d: 0 };
+
+  function borne(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+  function decalage(e) {
+    return e === FIXE ? 0 : etat.explosion * ECART * (e + 1);
+  }
+
+  function preparerCamera(t) {
+    base.ty = 7 + etat.explosion * 17 + (calme ? 0 : Math.sin(t * 0.8) * 0.5);
+    base.d = cam.recul + etat.explosion * 60;
+    base.ct = Math.cos(cam.cap);
+    base.st = Math.sin(cam.cap);
+    base.cp = Math.cos(cam.incl);
+    base.sp = Math.sin(cam.incl);
+  }
+
+  // Coordonnées à l'écran (pixels du canevas) et profondeur d'un point du monde.
+  function projeter(x, y, z, sortie) {
+    const oy = y - base.ty;
+    const x1 = x * base.ct - z * base.st;
+    const z1 = x * base.st + z * base.ct;
+    const y2 = oy * base.cp - z1 * base.sp;
+    const z2 = oy * base.sp + z1 * base.cp;
+    const d = base.d - z2;
+    sortie.d = d;
+    sortie.x = ecran.cx + ecran.f * x1 / d;
+    sortie.y = ecran.cy - ecran.f * y2 / d;
+    return d > 10;
+  }
+
+  function projeterSommets() {
+    const offs = [];
+    for (let e = -1; e <= TOIT; e++) offs[e + 1] = decalage(e);
+    for (let i = 0; i < N; i++) {
+      const e = GE[i];
+      const ok = projeter(GX[i], GY[i] + (e === FIXE ? 0 : offs[e + 1]), GZ[i], P1);
+      PX[i] = P1.x;
+      PY[i] = P1.y;
+      PD[i] = ok ? P1.d : -1;
+    }
+  }
+
+  /* ======================================================================
+   * 4. LE DESSIN
+   * ====================================================================== */
+
+  const toile = $('holo');
+  const halo = $('halo');
+  const ctx = toile.getContext('2d');
+  const hctx = halo.getContext('2d');
+  const tampon = document.createElement('canvas');   // sert aux petits parasites
+  const tctx = tampon.getContext('2d');
+  const PALETTE = {};
+  let policeTitre = 'sans-serif';
+  let policeMono = 'monospace';
+
+  function lirePalette() {
+    const style = getComputedStyle(document.documentElement);
+    ['faisceau', 'mer', 'nef', 'montagne', 'balise', 'texte'].forEach(nom => {
+      PALETTE[nom] = enRvb(style.getPropertyValue('--' + nom).trim());
+    });
+    policeTitre = style.getPropertyValue('--f-titre').trim() || policeTitre;
+    policeMono = style.getPropertyValue('--f-mono').trim() || policeMono;
+  }
+
+  function enRvb(hex) {
+    let h = hex.replace('#', '');
+    if (h.length === 3) h = h.split('').map(c => c + c).join('');
+    const n = parseInt(h, 16);
+    return Number.isNaN(n) ? [127, 243, 255] : [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+
+  // Sans le code couleur, tout prend le cyan du faisceau.
+  function teinte(nom, a) {
+    const c = PALETTE[etat.couleurs ? nom : 'faisceau'] || PALETTE.faisceau;
+    return 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + borne(a, 0, 1).toFixed(3) + ')';
+  }
+
+  function visibiliteVisee(c) {
+    const sel = etat.sel;
+    if (sel.k !== null) {
+      if (c.k === sel.k) return sel.s && c.s !== sel.s ? 0.4 : 1;
+      return c.k > sel.k ? 0.05 : 0.26;   // on « soulève » les étages du dessus
+    }
+    if (sel.s) return c.s === sel.s ? 1 : 0.22;
+    return 1;
+  }
+
+  function estChoisie(c) {
+    const sel = etat.sel;
+    if (sel.k === null && sel.s === null) return false;
+    return (sel.k === null || sel.k === c.k) && (sel.s === null || sel.s === c.s);
+  }
+
+  function decorAlpha() {
+    return etat.sel.k !== null || etat.sel.s !== null ? 0.55 : 1;
+  }
+
+  // Vus du dessus, les étages se superposent et leur lumière s'additionne : on la tempère.
+  let dessus = 0;
+
+  function dessiner(t) {
+    if (!ecran.larg || !ecran.haut) return;
+    preparerCamera(t);
+    projeterSommets();
+    dessus = Math.pow(Math.sin(borne(cam.incl, 0, Math.PI / 2)), 2);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.clearRect(0, 0, ecran.larg, ecran.haut);
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    // Pendant l'apparition, le bâtiment se construit de bas en haut.
+    const hIntro = etat.intro < 1 ? -H - 1 + etat.intro * (TOIT * H + 11 + H) : Infinity;
+    projecteur(t);
+    vagues(t);
+    remplissages(hIntro);
+    traits(t, hIntro);
+    feuxHelistation(t, hIntro);
+    if (etat.intro < 1) {
+      if (hIntro <= TOIT * H + 1.1) coupe(hIntro, 0.9, 0.08);
+    } else {
+      balayage(t);
+    }
+
+    ctx.globalCompositeOperation = 'source-over';
+    if (etat.apparition > 0) etiquettes();
+    if (t < etat.glitchFin) parasites();
+
+    hctx.clearRect(0, 0, halo.width, halo.height);
+    hctx.drawImage(toile, 0, 0, halo.width, halo.height);
+  }
+
+  const TRANCHES = [1, 0.68, 0.42];   // les traits du fond sont plus pâles
+
+  function traits(t, hIntro) {
+    const dpr = ecran.dpr;
+    const pmin = base.d - 150;
+    const pmax = base.d + 150;
+    const decor = decorAlpha();
+    for (const l of lots) {
+      const c = l.cellule ? cellules.get(l.cellule) : null;
+      const a = l.alpha * etat.scintil * (c ? c.vis * (1 + 0.7 * c.survol) * (1 - 0.35 * dessus * dessus) : decor);
+      if (a < 0.01) continue;
+      ctx.lineWidth = l.largeur * dpr * (c && estChoisie(c) ? 1.4 : 1);
+      ctx.setLineDash(l.tirets ? l.tirets.map(v => v * dpr) : []);
+      ctx.lineDashOffset = l.flux && !calme ? t * 14 * dpr : 0;
+      const s = l.segs;
+      for (let b = 0; b < 3; b++) {
+        ctx.beginPath();
+        let trace = false;
+        for (let j = 0; j < s.length; j += 2) {
+          const p = s[j];
+          const q = s[j + 1];
+          if (PD[p] < 0 || PD[q] < 0) continue;
+          const u = ((PD[p] + PD[q]) * 0.5 - pmin) / (pmax - pmin);
+          if ((u < 0.36 ? 0 : u < 0.68 ? 1 : 2) !== b) continue;
+          let x1 = PX[p], y1 = PY[p], x2 = PX[q], y2 = PY[q];
+          if (c && hIntro !== Infinity) {
+            const ya = GY[p];
+            const yb = GY[q];
+            const bas = Math.min(ya, yb);
+            if (bas > hIntro) continue;
+            if (Math.max(ya, yb) > hIntro) {
+              const f = (hIntro - bas) / Math.abs(ya - yb);
+              if (ya > yb) { x1 = x2 + (x1 - x2) * f; y1 = y2 + (y1 - y2) * f; }
+              else { x2 = x1 + (x2 - x1) * f; y2 = y1 + (y2 - y1) * f; }
+            }
+          }
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          trace = true;
+        }
+        if (trace) {
+          ctx.strokeStyle = teinte(l.couleur, a * TRANCHES[b]);
+          ctx.stroke();
+        }
+      }
+    }
+    ctx.setLineDash([]);
+    ctx.lineDashOffset = 0;
+  }
+
+  function remplissages(hIntro) {
+    for (const l of lots) {
+      if (!l.remplissage) continue;
+      const c = cellules.get(l.cellule);
+      if (c.k * H > hIntro) continue;
+      const a = l.remplissage * etat.scintil * c.vis * (1 - 0.7 * dessus) *
+        (1 + 2.4 * c.survol + (estChoisie(c) ? 1.8 : 0));
+      if (a < 0.004) continue;
+      ctx.beginPath();
+      let visible = true;
+      for (const dalle of l.polys) {
+        for (const tour of dalle) {
+          for (let i = 0; i < tour.length; i++) {
+            const v = tour[i];
+            if (PD[v] < 0) visible = false;
+            if (i) ctx.lineTo(PX[v], PY[v]);
+            else ctx.moveTo(PX[v], PY[v]);
+          }
+          ctx.closePath();
+        }
+      }
+      if (!visible) continue;
+      ctx.fillStyle = teinte(l.couleur, a);
+      ctx.fill('evenodd');
+    }
+  }
+
+  function segment3d(x1, y1, z1, x2, y2, z2) {
+    if (!projeter(x1, y1, z1, P1) || !projeter(x2, y2, z2, P2)) return;
+    ctx.moveTo(P1.x, P1.y);
+    ctx.lineTo(P2.x, P2.y);
+  }
+
+  // Le socle du projecteur : une lueur, des graduations et des arcs qui tournent.
+  function projecteur(t) {
+    const dpr = ecran.dpr;
+    const tour = calme ? 0 : t * 0.06;
+    const a0 = Math.min(1, 0.25 + etat.intro * 2) * etat.scintil;
+    if (projeter(0, Y_PROJECTEUR, 0, P1)) {
+      const r = ecran.f * RAYON_DISQUE / P1.d;
+      const g = ctx.createRadialGradient(P1.x, P1.y, 0, P1.x, P1.y, r);
+      g.addColorStop(0, teinte('faisceau', 0.15 * a0));
+      g.addColorStop(1, teinte('faisceau', 0));
+      ctx.save();
+      ctx.translate(P1.x, P1.y);
+      ctx.scale(1, Math.max(0.06, Math.abs(Math.sin(cam.incl))));
+      ctx.translate(-P1.x, -P1.y);
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(P1.x, P1.y, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+    ctx.lineWidth = dpr;
+    ctx.beginPath();
+    for (let i = 0; i < 72; i++) {
+      const a = tour + i / 72 * Math.PI * 2;
+      const r2 = 188 + (i % 6 === 0 ? 12 : 5);
+      segment3d(Math.cos(a) * 188, Y_PROJECTEUR, Math.sin(a) * 188, Math.cos(a) * r2, Y_PROJECTEUR, Math.sin(a) * r2);
+    }
+    ctx.strokeStyle = teinte('faisceau', 0.4 * a0);
+    ctx.stroke();
+    ctx.lineWidth = 2 * dpr;
+    ctx.beginPath();
+    for (let k = 0; k < 3; k++) {
+      const debut = -tour * 1.6 + k * Math.PI * 2 / 3;
+      for (let i = 0; i < 16; i++) {
+        const a1 = debut + i / 16 * 0.9;
+        const a2 = debut + (i + 1) / 16 * 0.9;
+        segment3d(Math.cos(a1) * 214, Y_PROJECTEUR, Math.sin(a1) * 214, Math.cos(a2) * 214, Y_PROJECTEUR, Math.sin(a2) * 214);
+      }
+    }
+    ctx.strokeStyle = teinte('faisceau', 0.45 * a0);
+    ctx.stroke();
+  }
+
+  // Côté mer : la houle, au-delà de Pae miti.
+  function vagues(t) {
+    const a = decorAlpha() * etat.scintil;
+    ctx.lineWidth = ecran.dpr;
+    for (let i = 0; i < 6; i++) {
+      const x0 = 134 + i * 11;
+      const w = Math.sqrt(Math.max(0, RAYON_DISQUE * RAYON_DISQUE - (x0 + 4) * (x0 + 4)));
+      ctx.beginPath();
+      let premier = true;
+      for (let z = -w; z <= w; z += 5) {
+        const x = x0 + 1.8 * Math.sin(z * 0.11 + (calme ? 0 : t * 1.4) + i * 0.9);
+        if (!projeter(x, 0, z, P1)) { premier = true; continue; }
+        if (premier) ctx.moveTo(P1.x, P1.y);
+        else ctx.lineTo(P1.x, P1.y);
+        premier = false;
+      }
+      ctx.strokeStyle = teinte('mer', 0.42 * (1 - i / 7) * a);
+      ctx.stroke();
+    }
+  }
+
+  function feuxHelistation(t, hIntro) {
+    const c = cellules.get(TOIT + '|mer');
+    if (TOIT * H > hIntro) return;
+    const a = c.vis * etat.scintil;
+    if (a < 0.05) return;
+    feux.forEach((v, i) => {
+      if (PD[v] < 0) return;
+      const allume = calme || Math.sin(t * 3.2 - i * 0.8) > 0 ? 1 : 0.25;
+      ctx.fillStyle = teinte('balise', a * allume);
+      ctx.beginPath();
+      ctx.arc(PX[v], PY[v], 1.8 * ecran.dpr, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+
+  // Un faisceau horizontal balaie le bâtiment de bas en haut, toutes les 8 secondes.
+  function balayage(t) {
+    if (calme) return;
+    const u = (t % 8) / 8;
+    if (u > 0.5) return;
+    coupe(-H + (u / 0.5) * (TOIT * H + 1.1 + H), 0.5, 0.045);
+  }
+
+  // Le contour du bâtiment à la hauteur y, en surbrillance.
+  function coupe(y, aTrait, aFond) {
+    const yy = y + decalage(borne(Math.floor(y / H), -1, TOIT));
+    ctx.beginPath();
+    for (let i = 0; i < PROFIL.length; i++) {
+      if (!projeter(PROFIL[i][0], yy, PROFIL[i][1], P1)) return;
+      if (i) ctx.lineTo(P1.x, P1.y);
+      else ctx.moveTo(P1.x, P1.y);
+    }
+    ctx.closePath();
+    ctx.fillStyle = teinte('faisceau', aFond * etat.scintil);
+    ctx.fill();
+    ctx.lineWidth = 1.4 * ecran.dpr;
+    ctx.strokeStyle = teinte('faisceau', aTrait * etat.scintil);
+    ctx.stroke();
+  }
+
+  // sens : où part le trait de rappel ('haut', 'bas', ou vers l'extérieur du bâtiment).
+  const ETIQUETTES = [
+    { texte: 'Pae miti', sous: 'côté mer', x: BOUT + 1, y: TOIT * H + 1.1, z: 0, e: TOIT, couleur: 'mer', sens: 'dehors' },
+    { texte: "Pae mou'a", sous: 'côté montagne', x: -BOUT - 1, y: TOIT * H + 1.1, z: 0, e: TOIT, couleur: 'montagne', sens: 'dehors' },
+    { texte: 'La nef', x: 0, y: TOIT * H + 8.1, z: 0, e: TOIT, couleur: 'nef', sens: 'haut', cellule: TOIT + '|centre' },
+    { texte: 'Hélistation', x: 95, y: TOIT * H + 2.7, z: 0, e: TOIT, couleur: 'balise', sens: 'haut', cellule: TOIT + '|mer' },
+    { texte: 'Parking', sous: 'niveau −1', x: -BOUT + 6, y: -H / 2, z: 0, e: -1, couleur: 'faisceau', sens: 'dehors-bas',
+      cellule: '-1|montagne', quand: () => etat.sel.k === -1 || etat.explosion > 0.5 || cam.incl < 0.2 },
+    { texte: 'SWAC', sous: 'eau puisée à 900 m', x: 166, y: -4, z: 12.5, e: FIXE, couleur: 'mer', sens: 'bas' }
+  ];
+
+  function etiquettes() {
+    const dpr = ecran.dpr;
+    const marge = 10 * dpr;
+    const policeNom = '600 ' + Math.round(11.5 * dpr) + 'px ' + policeTitre;
+    const policeSous = '500 ' + Math.round(10 * dpr) + 'px ' + policeMono;
+    const centreX = projeter(0, 9, 0, P2) ? P2.x : ecran.cx;
+    const decor = Math.max(0.6, decorAlpha());
+    ctx.textBaseline = 'middle';
+    ctx.lineWidth = dpr;
+    for (const et of ETIQUETTES) {
+      if (et.quand && !et.quand()) continue;
+      const c = et.cellule ? cellules.get(et.cellule) : null;
+      const a = (c ? c.vis : decor) * etat.scintil * etat.apparition;
+      if (a < 0.08) continue;
+      if (!projeter(et.x, et.y + decalage(et.e), et.z, P1)) continue;
+      const ax = P1.x;
+      const ay = P1.y;
+      let dx = 0.5;
+      let dy = -1;
+      if (et.sens === 'bas') dy = 1;
+      if (et.sens === 'dehors' || et.sens === 'dehors-bas') {
+        dx = ax >= centreX ? 1 : -1;
+        dy = et.sens === 'dehors' ? -0.8 : 0.8;
+      }
+      const ex = ax + dx * 24 * dpr;
+      const ey = ay + dy * 24 * dpr;
+      const nom = et.texte.toUpperCase();
+      ctx.font = policeNom;
+      let largeur = ctx.measureText(nom).width;
+      if (et.sous) {
+        ctx.font = policeSous;
+        largeur = Math.max(largeur, ctx.measureText(et.sous).width);
+      }
+      const hauteur = (et.sous ? 26 : 13) * dpr;
+      // Le bloc de texte reste toujours dans le cadre.
+      const droite = dx >= 0;
+      const x0 = borne(droite ? ex + 8 * dpr : ex - 8 * dpr - largeur, marge, ecran.larg - marge - largeur);
+      const y0 = borne(ey - 6.5 * dpr, marge, ecran.haut - marge - hauteur);
+      ctx.strokeStyle = teinte(et.couleur, a * 0.7);
+      ctx.beginPath();
+      ctx.moveTo(ax, ay);
+      ctx.lineTo(ex, ey);
+      ctx.lineTo(droite ? x0 - 3 * dpr : x0 + largeur + 3 * dpr, y0 + 6.5 * dpr);
+      ctx.stroke();
+      ctx.fillStyle = teinte(et.couleur, a);
+      ctx.fillRect(ax - 2 * dpr, ay - 2 * dpr, 4 * dpr, 4 * dpr);
+      ctx.textAlign = droite ? 'left' : 'right';
+      const xt = droite ? x0 : x0 + largeur;
+      ctx.font = policeNom;
+      ctx.fillText(nom, xt, y0 + 6.5 * dpr);
+      if (et.sous) {
+        ctx.font = policeSous;
+        ctx.fillStyle = teinte('texte', a * 0.75);
+        ctx.fillText(et.sous, xt, y0 + 19.5 * dpr);
+      }
+    }
+    numerosEtages(centreX);
+  }
+
+  // Les numéros d'étage au bout côté montagne, quand ils ont la place d'être lus.
+  function numerosEtages(centreX) {
+    const dpr = ecran.dpr;
+    const pos = [];
+    for (let k = -1; k <= 3; k++) {
+      if (!projeter(-BOUT - 3, k * H + H * 0.45 + decalage(k), 0, P1)) return;
+      pos.push({ k: k, x: P1.x, y: P1.y });
+    }
+    const lisibles = Math.abs(pos[1].y - pos[2].y) >= 12 * dpr;
+    ctx.font = '500 ' + Math.round(10 * dpr) + 'px ' + policeMono;
+    pos.forEach(p => {
+      if (!lisibles && p.k !== etat.sel.k) return;
+      const c = cellules.get(p.k + '|montagne');
+      const a = Math.max(0.3, c.vis) * 0.85 * etat.scintil * etat.apparition;
+      const gauche = p.x < centreX;
+      ctx.textAlign = gauche ? 'right' : 'left';
+      ctx.fillStyle = teinte('texte', a);
+      ctx.fillText('N' + (p.k < 0 ? '−1' : p.k), p.x + (gauche ? -6 : 6) * dpr, p.y);
+    });
+  }
+
+  // Quelques bandes décalées, de temps en temps, comme un signal qui saute.
+  function parasites() {
+    const L = ecran.larg;
+    for (let i = 0; i < 3; i++) {
+      const h = Math.max(2, Math.round((4 + Math.random() * 18) * ecran.dpr));
+      const y = Math.floor(Math.random() * Math.max(1, ecran.haut - h));
+      const dx = Math.round((Math.random() - 0.5) * 24 * ecran.dpr);
+      tctx.clearRect(0, 0, L, h);
+      tctx.drawImage(toile, 0, y, L, h, 0, 0, L, h);
+      ctx.clearRect(0, y, L, h);
+      ctx.drawImage(tampon, 0, 0, L, h, dx, y, L, h);
+    }
+  }
+
+  /* ======================================================================
+   * 5. LE PUPITRE — niveaux, secteurs, fiche, repères
+   * ====================================================================== */
+
+  function el(tag, attrs, enfants) {
+    const noeud = document.createElement(tag);
+    Object.entries(attrs || {}).forEach(([cle, valeur]) => {
+      if (valeur === null || valeur === undefined || valeur === false) return;
+      if (cle === 'text') noeud.textContent = valeur;
+      else if (cle === 'class') noeud.className = valeur;
+      else noeud.setAttribute(cle, valeur);
+    });
+    [].concat(enfants || []).forEach(enfant => {
+      if (enfant === null || enfant === undefined || enfant === false) return;
+      noeud.appendChild(typeof enfant === 'string' ? document.createTextNode(enfant) : enfant);
+    });
+    return noeud;
+  }
+
+  function vider(noeud) {
+    while (noeud.firstChild) noeud.removeChild(noeud.firstChild);
+  }
+
+  function couleurCss(nom) {
+    return 'var(--' + nom + ')';
+  }
+
+  function creerAscenseur() {
+    const liste = $('ascenseur');
+    NIVEAUX.forEach(n => {
+      const bouton = el('button', { type: 'button', class: 'etage', 'aria-pressed': 'false', 'data-k': String(n.k) }, [
+        el('span', { class: 'cabine', 'aria-hidden': 'true', text: n.touche }),
+        el('span', { class: 'quoi' }, [el('strong', { text: n.nom }), el('small', { text: n.quoi })])
+      ]);
+      bouton.addEventListener('click', () => choisir(etat.sel.k === n.k ? null : n.k, etat.sel.s));
+      liste.appendChild(el('li', {}, bouton));
+    });
+  }
+
+  function creerSecteurs() {
+    const zone = $('secteurs');
+    SECTEURS.forEach(sec => {
+      const bouton = el('button', { type: 'button', class: 'secteur', 'aria-pressed': 'false', 'data-s': sec.id,
+        style: '--c: ' + couleurCss(sec.couleur) }, [
+        el('strong', { text: sec.nom }),
+        el('small', { text: sec.sens })
+      ]);
+      bouton.addEventListener('click', () => choisir(etat.sel.k, etat.sel.s === sec.id ? null : sec.id));
+      zone.appendChild(bouton);
+    });
+  }
+
+  function remplirReperes() {
+    const dl = $('reperes');
+    REPERES.forEach(r => {
+      dl.appendChild(el('dt', { text: r.valeur }));
+      dl.appendChild(el('dd', {}, [r.texte, el('small', { text: r.source })]));
+    });
+    const ul = $('sources');
+    SOURCES.forEach(s => ul.appendChild(el('li', { text: s })));
+  }
+
+  function nomNiveau(k) {
+    return NIVEAUX.find(n => n.k === k).nom;
+  }
+
+  function choisir(k, s) {
+    etat.sel.k = k;
+    etat.sel.s = s;
+    document.querySelectorAll('.etage').forEach(b => {
+      b.setAttribute('aria-pressed', String(k !== null && Number(b.dataset.k) === k));
+    });
+    document.querySelectorAll('.secteur').forEach(b => {
+      b.setAttribute('aria-pressed', String(b.dataset.s === s));
+    });
+    rendreFiche();
+  }
+
+  function rendreFiche() {
+    const fiche = $('fiche');
+    vider(fiche);
+    const k = etat.sel.k;
+    const s = etat.sel.s;
+    const niv = k === null ? null : NIVEAUX.find(n => n.k === k);
+    const sec = s === null ? null : SECTEURS.find(x => x.id === s);
+    const textes = [];
+    const groupes = [];
+    let sur;
+    let titre;
+    const services = (kk, ss) => SERVICES.filter(v => v.k === kk && v.s === ss);
+
+    if (!niv && !sec) {
+      sur = "Vue d'ensemble";
+      titre = 'Hôpital du Taaone';
+      textes.push(PRESENTATION, "Choisir un niveau ou toucher le bâtiment pour voir ce qui s'y trouve.");
+    } else if (niv && !sec) {
+      sur = 'Niveau choisi';
+      titre = niv.nom;
+      textes.push(niv.resume);
+      SECTEURS.forEach(x => groupes.push({ titre: x.nom + ' · ' + x.sens, couleur: x.couleur, items: services(k, x.id) }));
+      groupes.push({ titre: 'Côté non précisé', couleur: 'faisceau', items: services(k, null) });
+    } else if (!niv && sec) {
+      sur = 'Secteur choisi';
+      titre = sec.nom + ' · ' + sec.sens;
+      textes.push(sec.resume);
+      NIVEAUX.forEach(n => groupes.push({ titre: n.nom, couleur: sec.couleur, items: services(n.k, sec.id) }));
+    } else {
+      sur = niv.nom + ' · ' + sec.sens;
+      titre = sec.nom;
+      textes.push(niv.resume);
+      groupes.push({ titre: null, couleur: sec.couleur, items: services(k, s) });
+      groupes.push({ titre: 'Sur ce niveau, côté non précisé', couleur: 'faisceau', items: services(k, null) });
+    }
+
+    fiche.appendChild(el('p', { class: 'sur', text: sur }));
+    fiche.appendChild(el('h3', { text: titre }));
+    textes.forEach(t => fiche.appendChild(el('p', { text: t })));
+    let total = 0;
+    groupes.forEach(g => {
+      if (!g.items.length) return;
+      total += g.items.length;
+      if (g.titre) fiche.appendChild(el('h4', { text: g.titre }));
+      fiche.appendChild(el('ul', { class: 'services' }, g.items.map(v => el('li', { style: '--c: ' + couleurCss(g.couleur) }, [
+        el('strong', { text: v.nom }),
+        v.detail ? el('span', { text: v.detail }) : null,
+        el('small', { text: 'Source : ' + v.source })
+      ]))));
+    });
+    if (groupes.length && !total) {
+      fiche.appendChild(el('p', { text: "Aucun service n'est localisé ici dans les documents publics consultés." }));
+    }
+    if (niv || sec) {
+      const retour = el('button', { type: 'button', class: 'bouton', text: 'Tout afficher' });
+      retour.addEventListener('click', () => choisir(null, null));
+      fiche.appendChild(retour);
+    }
+    $('annonce').textContent = niv || sec
+      ? titre + (niv && sec ? ', ' + niv.nom : '') + ' : ' + total + (total > 1 ? ' services localisés.' : ' service localisé.')
+      : '';
+  }
+
+  /* ======================================================================
+   * 6. LES GESTES — glisser, pincer, molette, clavier, boutons
+   * ====================================================================== */
+
+  const pointeurs = new Map();
+  let pincement = 0;
+  let pince = false;
+  let souris = null;
+  const bulle = $('bulle');
+
+  function positionLocale(ev) {
+    const r = toile.getBoundingClientRect();
+    return { x: ev.clientX - r.left, y: ev.clientY - r.top, largeur: r.width };
+  }
+
+  function ecartPointeurs() {
+    const p = Array.from(pointeurs.values());
+    return Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y);
+  }
+
+  function zoomer(facteur) {
+    cam.reculVise = borne(cam.reculVise * facteur, 150, 900);
+    if (pointeurs.size) cam.recul = cam.reculVise;
+  }
+
+  function agir() {
+    etat.derniereAction = performance.now();
+  }
+
+  // L'aide en bas de l'écran s'efface dès qu'on a manipulé l'hologramme.
+  function aideVue() {
+    $('geste').classList.add('vu');
+  }
+
+  toile.addEventListener('pointerdown', ev => {
+    try { toile.setPointerCapture(ev.pointerId); } catch (e) { /* rien */ }
+    pointeurs.set(ev.pointerId, { x: ev.clientX, y: ev.clientY, bouge: 0 });
+    if (pointeurs.size === 2) { pincement = ecartPointeurs(); pince = true; }
+    toile.classList.add('saisi');
+    souris = null;
+    bulle.hidden = true;
+    agir();
+  });
+
+  toile.addEventListener('pointermove', ev => {
+    const p = pointeurs.get(ev.pointerId);
+    if (!p) {
+      if (ev.pointerType === 'mouse') souris = positionLocale(ev);
+      return;
+    }
+    const dx = ev.clientX - p.x;
+    const dy = ev.clientY - p.y;
+    p.x = ev.clientX;
+    p.y = ev.clientY;
+    p.bouge += Math.abs(dx) + Math.abs(dy);
+    if (pointeurs.size === 1 && !pince) {
+      cam.cap -= dx * 0.0085;
+      cam.capVise = cam.cap;
+      cam.incl = borne(cam.incl + dy * 0.006, -0.2, 1.52);
+      cam.inclVise = cam.incl;
+    } else if (pointeurs.size === 2) {
+      const e = ecartPointeurs();
+      if (pincement > 0 && e > 0) zoomer(pincement / e);
+      pincement = e;
+    }
+    if (p.bouge > 6) aideVue();
+    agir();
+  });
+
+  function finPointeur(ev) {
+    const p = pointeurs.get(ev.pointerId);
+    if (!p) return;
+    pointeurs.delete(ev.pointerId);
+    if (pointeurs.size < 2) pincement = 0;
+    if (pointeurs.size) return;
+    toile.classList.remove('saisi');
+    if (ev.type === 'pointerup' && p.bouge < 6 && !pince) cliquer(positionLocale(ev));
+    pince = false;
+  }
+  toile.addEventListener('pointerup', finPointeur);
+  toile.addEventListener('pointercancel', finPointeur);
+  toile.addEventListener('pointerleave', ev => {
+    if (ev.pointerType !== 'mouse') return;
+    souris = null;
+    etat.survol = null;
+    bulle.hidden = true;
+  });
+
+  toile.addEventListener('wheel', ev => {
+    ev.preventDefault();
+    zoomer(Math.exp(ev.deltaY * (ev.deltaMode === 1 ? 0.05 : 0.0015)));
+    aideVue();
+    agir();
+  }, { passive: false });
+
+  toile.addEventListener('keydown', ev => {
+    let fait = true;
+    switch (ev.key) {
+      case 'ArrowLeft': cam.capVise += 0.14; break;
+      case 'ArrowRight': cam.capVise -= 0.14; break;
+      case 'ArrowUp': cam.inclVise = borne(cam.inclVise + 0.08, -0.2, 1.52); break;
+      case 'ArrowDown': cam.inclVise = borne(cam.inclVise - 0.08, -0.2, 1.52); break;
+      case '+': case '=': zoomer(0.88); break;
+      case '-': case '_': zoomer(1.14); break;
+      case 'e': case 'E': basculer('eclate'); break;
+      case 'PageUp': changerNiveau(1); break;
+      case 'PageDown': changerNiveau(-1); break;
+      case 'Escape': choisir(null, null); break;
+      default: fait = false;
+    }
+    if (fait) { ev.preventDefault(); aideVue(); agir(); }
+  });
+
+  function changerNiveau(sens) {
+    const k = etat.sel.k === null ? (sens > 0 ? -1 : TOIT) : borne(etat.sel.k + sens, -1, TOIT);
+    choisir(k, etat.sel.s);
+  }
+
+  // Envelopper les points d'une cellule à l'écran, puis voir si le pointeur est dedans.
+  function enveloppe(pts) {
+    pts.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    const croix = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+    const bas = [];
+    const haut = [];
+    for (const p of pts) {
+      while (bas.length >= 2 && croix(bas[bas.length - 2], bas[bas.length - 1], p) <= 0) bas.pop();
+      bas.push(p);
+    }
+    for (let i = pts.length - 1; i >= 0; i--) {
+      const p = pts[i];
+      while (haut.length >= 2 && croix(haut[haut.length - 2], haut[haut.length - 1], p) <= 0) haut.pop();
+      haut.push(p);
+    }
+    bas.pop();
+    haut.pop();
+    return bas.concat(haut);
+  }
+
+  function dedans(poly, x, y) {
+    let oui = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      const xi = poly[i][0], yi = poly[i][1], xj = poly[j][0], yj = poly[j][1];
+      if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) oui = !oui;
+    }
+    return oui;
+  }
+
+  // La cellule visible sous le pointeur : la plus proche de la caméra.
+  function celluleSous(x, y) {
+    let meilleure = null;
+    let profondeur = Infinity;
+    cellules.forEach(c => {
+      if (c.vis < 0.15) return;
+      const pts = [];
+      let d = 0;
+      for (const v of c.points) {
+        if (PD[v] < 0) return;
+        pts.push([PX[v], PY[v]]);
+        d += PD[v];
+      }
+      if (!dedans(enveloppe(pts), x, y)) return;
+      d /= c.points.length;
+      if (d < profondeur) { profondeur = d; meilleure = c; }
+    });
+    return meilleure;
+  }
+
+  function cliquer(pos) {
+    const c = celluleSous(pos.x * ecran.dpr, pos.y * ecran.dpr);
+    if (!c) choisir(null, null);
+    else if (etat.sel.k === c.k && etat.sel.s === c.s) choisir(null, null);
+    else choisir(c.k, c.s);
+  }
+
+  function nomCellule(c) {
+    const sec = SECTEURS.find(x => x.id === c.s);
+    return nomNiveau(c.k) + ' · ' + sec.nom;
+  }
+
+  function survoler() {
+    if (!souris || pointeurs.size) return;
+    const c = celluleSous(souris.x * ecran.dpr, souris.y * ecran.dpr);
+    etat.survol = c;
+    if (!c) { bulle.hidden = true; return; }
+    bulle.textContent = nomCellule(c);
+    bulle.style.left = souris.x + 'px';
+    bulle.style.top = souris.y + 'px';
+    bulle.classList.toggle('gauche', souris.x > souris.largeur - 220);
+    bulle.hidden = false;
+  }
+
+  function majBoutons() {
+    $('b-rotation').setAttribute('aria-pressed', String(etat.rotation));
+    $('b-eclate').setAttribute('aria-pressed', String(etat.eclate));
+    $('b-couleurs').setAttribute('aria-pressed', String(etat.couleurs));
+  }
+
+  function basculer(cle) {
+    if (cle === 'rotation') etat.rotation = !etat.rotation;
+    if (cle === 'eclate') etat.eclate = !etat.eclate;
+    if (cle === 'couleurs') etat.couleurs = !etat.couleurs;
+    majBoutons();
+  }
+
+  // Aller au même angle par le chemin le plus court.
+  function capProche(cible) {
+    const tour = Math.PI * 2;
+    return cible + tour * Math.round((cam.cap - cible) / tour);
+  }
+
+  function allerVers(nom) {
+    const v = VUES[nom];
+    cam.capVise = capProche(v.cap);
+    cam.inclVise = v.incl;
+    if (nom !== 'perspective') etat.rotation = false;
+    majBoutons();
+    agir();
+  }
+
+  document.querySelectorAll('[data-vue]').forEach(b => b.addEventListener('click', () => allerVers(b.dataset.vue)));
+  $('b-rotation').addEventListener('click', () => basculer('rotation'));
+  $('b-eclate').addEventListener('click', () => basculer('eclate'));
+  $('b-couleurs').addEventListener('click', () => basculer('couleurs'));
+  $('b-recentrer').addEventListener('click', () => {
+    allerVers('perspective');
+    cam.reculVise = ecran.reculDefaut;
+  });
+  $('b-tout').addEventListener('click', () => choisir(null, null));
+
+  if (window.matchMedia('(pointer: coarse)').matches) {
+    $('geste').textContent = 'Glisser pour tourner · pincer pour zoomer · toucher un étage pour le choisir';
+  }
+
+  /* ======================================================================
+   * 7. LA BOUCLE — environ 60 images par seconde
+   * ====================================================================== */
+
+  function redimensionner() {
+    const boite = $('ecran').getBoundingClientRect();
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const L = Math.max(1, Math.round(boite.width * dpr));
+    const Ht = Math.max(1, Math.round(boite.height * dpr));
+    if (L === ecran.larg && Ht === ecran.haut && dpr === ecran.dpr) return;
+    ecran.dpr = dpr;
+    ecran.larg = L;
+    ecran.haut = Ht;
+    toile.width = L;
+    toile.height = Ht;
+    halo.width = Math.max(1, Math.round(L / 2));
+    halo.height = Math.max(1, Math.round(Ht / 2));
+    tampon.width = L;
+    tampon.height = Math.round(64 * dpr);
+    ecran.cx = L / 2;
+    ecran.cy = Ht * 0.53;
+    ecran.f = Math.min(L, Ht) * 0.5 / Math.tan(19 * Math.PI / 180);
+    // Sur un écran en hauteur, la caméra recule pour garder la pirogue entière.
+    const reculDefaut = boite.width < boite.height * 0.95 ? 400 : 320;
+    if (reculDefaut !== ecran.reculDefaut) {
+      const r = reculDefaut / ecran.reculDefaut;
+      ecran.reculDefaut = reculDefaut;
+      cam.recul *= r;
+      cam.reculVise *= r;
+    }
+  }
+
+  let texteHud = '';
+  function majHud() {
+    const cap = Math.round(((cam.cap * 180 / Math.PI) % 360 + 360) % 360) % 360;
+    const incl = Math.round(cam.incl * 180 / Math.PI);
+    const zoom = (ecran.reculDefaut / cam.recul).toFixed(1).replace('.', ',');
+    const sel = etat.sel;
+    const vue = sel.k === null && sel.s === null ? 'TOUT'
+      : [sel.k === null ? null : (sel.k === TOIT ? 'TOIT' : 'N' + (sel.k < 0 ? '−1' : sel.k)),
+        sel.s === null ? null : SECTEURS.find(x => x.id === sel.s).nom.toUpperCase()].filter(Boolean).join(' · ');
+    const texte = cap + '|' + incl + '|' + zoom + '|' + vue;
+    if (texte === texteHud) return;
+    texteHud = texte;
+    $('hud-cap').textContent = String(cap).padStart(3, '0') + '°';
+    $('hud-incl').textContent = (incl < 0 ? '−' : '') + String(Math.abs(incl)).padStart(2, '0') + '°';
+    $('hud-zoom').textContent = '×' + zoom;
+    $('hud-sel').textContent = vue;
+  }
+
+  function mettreAJour(dt, t, maintenant) {
+    if (etat.intro < 1) etat.intro = calme ? 1 : Math.min(1, etat.intro + dt / 2.4);
+    else if (etat.apparition < 1) etat.apparition = calme ? 1 : Math.min(1, etat.apparition + dt / 0.6);
+
+    if (etat.rotation && !calme && !pointeurs.size && maintenant - etat.derniereAction > 2500) {
+      cam.cap += dt * 0.11;
+      cam.capVise = cam.cap;
+    }
+    const lisse = calme ? 1 : 1 - Math.exp(-dt * 7);
+    cam.cap += (cam.capVise - cam.cap) * lisse;
+    cam.incl += (cam.inclVise - cam.incl) * lisse;
+    cam.recul += (cam.reculVise - cam.recul) * lisse;
+    etat.explosion += ((etat.eclate ? 1 : 0) - etat.explosion) * (calme ? 1 : 1 - Math.exp(-dt * 5));
+
+    const fondu = calme ? 1 : 1 - Math.exp(-dt * 9);
+    cellules.forEach(c => {
+      c.vis += (visibiliteVisee(c) - c.vis) * fondu;
+      c.survol += ((etat.survol === c ? 1 : 0) - c.survol) * fondu;
+    });
+
+    if (calme) {
+      etat.scintil = 1;
+    } else {
+      etat.scintil = 0.94 + 0.06 * Math.sin(t * 29) * Math.sin(t * 13.7);
+      if (t > etat.prochainGlitch) {
+        etat.glitchFin = t + 0.11;
+        etat.prochainGlitch = t + 7 + Math.random() * 9;
+      }
+      if (t < etat.glitchFin) etat.scintil *= 0.78;
+    }
+  }
+
+  let precedente = performance.now();
+  function boucle(maintenant) {
+    const dt = Math.min(0.05, Math.max(0, (maintenant - precedente) / 1000));
+    precedente = maintenant;
+    const t = maintenant / 1000;
+    mettreAJour(dt, t, maintenant);
+    dessiner(t);
+    survoler();
+    majHud();
+    requestAnimationFrame(boucle);
+  }
+
+  function suivreMouvement() {
+    calme = reduit.matches;
+    if (calme) etat.rotation = false;
+    majBoutons();
+  }
+  if (reduit.addEventListener) reduit.addEventListener('change', suivreMouvement);
+
+  lirePalette();
+  creerAscenseur();
+  creerSecteurs();
+  remplirReperes();
+  rendreFiche();
+  majBoutons();
+  redimensionner();
+  if (window.ResizeObserver) new ResizeObserver(redimensionner).observe($('ecran'));
+  else window.addEventListener('resize', redimensionner);
+  etat.prochainGlitch = performance.now() / 1000 + 6;
+  requestAnimationFrame(boucle);
+})();
+</script>
+</body>
+</html>

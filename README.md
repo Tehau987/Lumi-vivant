@@ -105,6 +105,7 @@ lumi-vivant/
 ├── manifest.webmanifest, sw.js   pour installer Lumi comme une appli
 ├── Lancer Lumi (Windows).bat     lance le capteur sous Windows
 ├── Lancer Lumi (Mac).command     lance le capteur sur Mac
+├── hologramme-chpf/index.html    l'hologramme 3D du CHPF (page à part, voir § 9)
 ├── VISION.md                     la vision et la suite du projet
 └── CLAUDE.md                     les consignes pour Claude
 ```
@@ -113,3 +114,16 @@ lumi-vivant/
 
 - Règles de vie : `node tests/vie.test.js`, ou ouvrir `tests/tests.html` dans un navigateur.
 - Capteur PC : `python3 -m unittest discover -s capteur -v`.
+
+## 9. À côté de Lumi : l'hologramme du CHPF
+
+`hologramme-chpf/index.html` est une page à part, sans lien avec Lumi : un hologramme 3D du
+bâtiment principal du CHPF (hôpital du Taaone, Pirae). Double-clique dessus pour l'ouvrir,
+même hors ligne. Avec le capteur PC lancé, elle est aussi sur
+<http://127.0.0.1:8765/hologramme-chpf/>.
+
+- Glisse pour tourner, molette ou pincement pour zoomer, touche un étage pour voir ses services.
+- Le pupitre choisit un niveau (−1 à 3, toit) ou un secteur (Pae mou'a côté montagne,
+  centre et nef, Pae miti côté mer) ; **Vue éclatée** sépare les étages.
+- C'est un schéma non officiel, fait d'après des documents publics : pour corriger un
+  service, modifie le tableau `SERVICES` en haut du script de la page.
