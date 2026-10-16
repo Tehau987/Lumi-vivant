@@ -498,7 +498,17 @@
     '@media (prefers-reduced-motion:reduce){.lumi *{animation:none!important;transition:none!important}}'
   ].join('\n');
 
-  var api = { tree: tree, toString: toString, toDOM: toDOM, Animator: Animator, CSS: CSS, PARTS_COUNT: PARTS.length };
+  /**
+   * Lumi en image fixe : un SVG autonome, sans animation, avec ses états (« c-… ») et
+   * son caractère (« v-… »). Sert au widget de l'écran d'accueil de l'appli Android.
+   */
+  function toImageSvg(stage, classes, size) {
+    var css = CSS + '\n.lumi .lumi-svg{width:208px;height:206px}\n.lumi *{animation:none!important;transition:none!important}';
+    return '<svg xmlns="http://www.w3.org/2000/svg" class="lumi ' + (classes || []).join(' ') + '" width="' + size + '" height="' + size +
+      '" viewBox="0 0 208 206"><style><![CDATA[' + css + ']]></style>' + toString(tree(stage), { x: 0, y: 0, width: 208, height: 206 }) + '</svg>';
+  }
+
+  var api = { tree: tree, toString: toString, toDOM: toDOM, toImageSvg: toImageSvg, Animator: Animator, CSS: CSS, PARTS_COUNT: PARTS.length };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.LumiCreature = api;
 })(typeof window !== 'undefined' ? window : globalThis);

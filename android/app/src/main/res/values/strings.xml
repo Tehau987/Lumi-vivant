@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Lumi Vivant</string>
+    <string name="widget_nom">Lumi</string>
+    <string name="widget_description">Lumi sur ton écran d\'accueil : son âge, sa santé et son humeur.</string>
+    <string name="widget_ouvre">Ouvre Lumi pour le réveiller</string>
+    <string name="export_ok">Sauvegarde exportée.</string>
+    <string name="export_rate">L\'export a échoué.</string>
+</resources>

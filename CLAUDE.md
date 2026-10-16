@@ -22,6 +22,7 @@ disque, connexion) et le temps d'écran de son propriétaire. La vision est dans
 | `js/capteurs.js` | Mesures du navigateur + liaison au capteur PC (`/api/sante`, `/api/historique`) ; renvoie des mesures normalisées |
 | `js/app.js` | Boucle de vie toutes les 5 s, affichage, carnet de santé, pause, réglages, sauvegarde |
 | `capteur/lumi_capteur.py` | Capteur PC : mesures système, suivi d'usage, historique, petit serveur sur 127.0.0.1 |
+| `android/` | Appli Android (Java, sans bibliothèque) : l'appli web dans une WebView, le pont `window.LumiAndroid` (`Pont.java`, `Mesures.java`) et le widget (`LumiWidget.java`) |
 
 Le flux : `capteurs.read()` → `vie.computeVitals()` → classes `c-…` sur Lumi + jauges.
 
@@ -39,6 +40,9 @@ Le flux : `capteurs.read()` → `vie.computeVitals()` → classes `c-…` sur Lu
 - Le capteur PC n'utilise que la bibliothèque standard de Python 3.8+ (`psutil` reste
   facultatif), n'écoute que sur `127.0.0.1` et ne sert jamais le dossier `capteur/`.
 - **Vie privée** : aucune donnée ne sort de l'appareil ; pas d'appel réseau hors `127.0.0.1`.
+- L'appli Android **n'a pas la permission INTERNET** et ne dépend d'aucune bibliothèque.
+  Elle ne fait que mesurer (`Mesures.java`) : les règles (temps d'écran, pauses) restent
+  dans `vie.js`. Les fichiers web sont copiés dans l'APK à la construction : ne pas les dupliquer.
 - Textes de l'interface en français ; accessibilité : vrais boutons, libellés, contrastes.
 - Sauvegarde : clé `localStorage` `lumi-vivant-v1`. Si la structure change, garder les
   anciennes sauvegardes lisibles (`importJson` complète avec `newLife`).
@@ -49,3 +53,5 @@ Le flux : `capteurs.read()` → `vie.computeVitals()` → classes `c-…` sur Lu
 - Tests du capteur : `python3 -m unittest discover -s capteur -v`.
 - Une mesure du capteur : `python3 capteur/lumi_capteur.py --une-mesure`.
 - Lancer avec le capteur : `python3 capteur/lumi_capteur.py`, puis <http://127.0.0.1:8765>.
+- Appli Android : `cd android && ./gradlew assembleDebug` (il faut le SDK Android) ; sinon
+  GitHub la construit (`.github/workflows/android.yml`) et la publie depuis `main`.

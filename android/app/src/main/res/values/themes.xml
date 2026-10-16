@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Le même bleu nuit que l'appli web (theme-color de index.html). -->
+    <style name="Theme.Lumi" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/nuit</item>
+        <item name="android:statusBarColor">@color/nuit</item>
+        <item name="android:navigationBarColor">@color/nuit</item>
+    </style>
+    <color name="nuit">#10172A</color>
+    <color name="texte">#F4F1EA</color>
+    <color name="texte_doux">#B9C2D8</color>
+</resources>
