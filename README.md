@@ -55,22 +55,43 @@ t'aider). Ouvre alors l'adresse dans Chrome (Android) ou Safari (iPhone), puis
 « Ajouter à l'écran d'accueil ».
 
 Un téléphone protège beaucoup ses informations : voir le tableau ci-dessous.
-Le vrai « temps d'écran » d'un téléphone n'est lisible que par une appli native
-(étape 2 de [VISION.md](VISION.md)).
+Le vrai « temps d'écran » d'un téléphone n'est lisible que par une appli native :
+c'est l'appli Android ci-dessous.
+
+### L'appli Android
+
+L'appli Android (dossier `android/`) contient le même Lumi, avec en plus les mesures
+du téléphone : batterie et sa **température**, mémoire, stockage, connexion et le **vrai
+temps d'écran** (tout le temps où l'écran est allumé, même Lumi fermé). Elle ajoute un
+**widget** pour voir Lumi sur l'écran d'accueil.
+
+1. Sur le téléphone, ouvre
+   <https://github.com/Tehau987/Lumi-vivant/releases/latest/download/lumi-vivant.apk>
+   (le fichier est reconstruit à chaque mise à jour de `main`).
+2. Ouvre le fichier téléchargé. Android demande d'autoriser l'installation
+   d'applis depuis ton navigateur : accepte pour cette fois.
+3. Dans Lumi, touche **Autoriser le temps d'écran**, choisis *Lumi Vivant* dans la
+   liste et active l'accès. Sans cela, seul le temps passé avec Lumi ouvert compte.
+4. Pour le widget : appui long sur l'écran d'accueil → **Widgets** → *Lumi*.
+
+L'appli n'a **pas** la permission d'aller sur internet : rien ne peut quitter le téléphone.
+Une nouvelle version s'installe par-dessus l'ancienne sans effacer Lumi.
+Elle est signée avec une clé de test (`android/lumi-debug.keystore`) : parfait pour toi
+et tes proches, mais il faudra une vraie clé pour le Play Store.
 
 ## 4. Ce que Lumi peut mesurer, selon l'endroit
 
-| Mesure | Navigateur sur ordinateur | Capteur PC | Android (Chrome) | iPhone (Safari) |
-| --- | --- | --- | --- | --- |
-| Batterie et recharge | Chrome, Edge | Oui | Oui | Non |
-| Charge du processeur | Chrome récent ; sinon estimation | Oui, en % | Estimation | Estimation |
-| Mémoire et disque | Non | Oui | Non | Non |
-| Température | Non | Souvent sous Linux | Non | Non |
-| Connexion | Oui | Oui (via le navigateur) | Oui | En ligne / hors ligne |
-| Temps d'écran | Pendant que Lumi est ouvert | Tout le temps | Pendant que Lumi est ouvert | Pendant que Lumi est ouvert |
-| Pauses | Veille de plus de 5 min ; Chrome et Edge : détection d'inactivité (sur autorisation) | Clavier et souris (Windows, Mac) | Veille de plus de 5 min | Veille de plus de 5 min |
+| Mesure | Navigateur sur ordinateur | Capteur PC | Android (Chrome) | Appli Android | iPhone (Safari) |
+| --- | --- | --- | --- | --- | --- |
+| Batterie et recharge | Chrome, Edge | Oui | Oui | Oui | Non |
+| Charge du processeur | Chrome récent ; sinon estimation | Oui, en % | Estimation | Estimation | Estimation |
+| Mémoire et disque | Non | Oui | Non | Oui | Non |
+| Température | Non | Souvent sous Linux | Non | Batterie | Non |
+| Connexion | Oui | Oui (via le navigateur) | Oui | Oui | En ligne / hors ligne |
+| Temps d'écran | Pendant que Lumi est ouvert | Tout le temps | Pendant que Lumi est ouvert | Tout le temps (sur autorisation) | Pendant que Lumi est ouvert |
+| Pauses | Veille de plus de 5 min ; Chrome et Edge : détection d'inactivité (sur autorisation) | Clavier et souris (Windows, Mac) | Veille de plus de 5 min | Écran éteint 5 min | Veille de plus de 5 min |
 
-Chaque jauge indique sa source : **mesuré**, **capteur PC**, **estimé** ou **indisponible**.
+Chaque jauge indique sa source : **mesuré**, **capteur PC**, **appli Android**, **estimé** ou **indisponible**.
 Une mesure indisponible n'est jamais comptée comme mauvaise : elle est simplement ignorée.
 
 ## 5. Vie privée
@@ -100,6 +121,8 @@ lumi-vivant/
 ├── js/app.js                     l'interface, la boucle de vie, le carnet de santé
 ├── capteur/lumi_capteur.py       le capteur PC (Python seul)
 ├── capteur/test_capteur.py       ses tests
+├── android/                      l'appli Android (WebView + widget, sans bibliothèque)
+├── .github/workflows/android.yml construit l'APK sur GitHub à chaque mise à jour
 ├── tests/vie.test.js             les tests des règles de vie
 ├── tests/tests.html              les mêmes tests, dans un navigateur
 ├── manifest.webmanifest, sw.js   pour installer Lumi comme une appli
@@ -113,3 +136,5 @@ lumi-vivant/
 
 - Règles de vie : `node tests/vie.test.js`, ou ouvrir `tests/tests.html` dans un navigateur.
 - Capteur PC : `python3 -m unittest discover -s capteur -v`.
+- Appli Android : construite par GitHub (onglet **Actions**) ; sur un ordinateur avec
+  Android Studio : ouvrir le dossier `android/`, ou `cd android && ./gradlew assembleDebug`.

@@ -1,0 +1,83 @@
+/*
+ * L'appli Android de Lumi Vivant.
+ * Aucune bibliothèque : seulement Android lui-même. Les fichiers de l'appli web
+ * (index.html, css, js, icons) sont copiés dans l'appli à chaque construction :
+ * une seule version de Lumi, partagée par le web et Android.
+ */
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'io.github.tehau987.lumivivant'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'io.github.tehau987.lumivivant'
+        minSdk 28 // Android 9 : les allumages de l'écran sont lisibles
+        targetSdk 35
+        versionCode 1
+        versionName '0.1'
+    }
+
+    // Toujours la même clé : une nouvelle version s'installe par-dessus l'ancienne
+    // sans effacer Lumi. Clé de test seulement, pas pour le Play Store.
+    signingConfigs {
+        debug {
+            storeFile rootProject.file('lumi-debug.keystore')
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
+    }
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+/* Copie l'appli web (dossier racine du dépôt) dans les fichiers de l'appli : assets/www. */
+abstract class CopierAppliWeb extends DefaultTask {
+    @InputFiles
+    @PathSensitive(PathSensitivity.RELATIVE)
+    abstract ConfigurableFileCollection getFichiers()
+
+    @OutputDirectory
+    abstract DirectoryProperty getSortie()
+
+    @Inject
+    abstract FileSystemOperations getFs()
+
+    @Internal
+    File racine
+
+    @TaskAction
+    void copier() {
+        fs.sync {
+            from(racine) {
+                include 'index.html', 'manifest.webmanifest', 'css/**', 'js/**', 'icons/**'
+            }
+            into(sortie.dir('www'))
+        }
+    }
+}
+
+def racineWeb = rootProject.file('..')
+def copierAppliWeb = tasks.register('copierAppliWeb', CopierAppliWeb) {
+    racine = racineWeb
+    fichiers.from(fileTree(racineWeb) {
+        include 'index.html', 'manifest.webmanifest', 'css/**', 'js/**', 'icons/**'
+    })
+}
+
+androidComponents {
+    onVariants(selector().all()) { variant ->
+        variant.sources.assets?.addGeneratedSourceDirectory(copierAppliWeb) { it.sortie }
+    }
+}

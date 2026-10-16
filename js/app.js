@@ -125,6 +125,7 @@
   /* ---------- Le cœur : le temps et la santé ---------- */
 
   function currentUsage(now, r) {
+    if (r && r.android && r.android.ecran) return Vie.usageFromScreenEvents(r.android.ecran, now);
     return r && r.agentUsage ? Vie.usageFromAgent(r.agentUsage) : Vie.usageSummary(life.usage, now);
   }
 
@@ -137,6 +138,7 @@
       memory: readings.memory,
       disk: readings.disk,
       temperature: readings.temperature,
+      batteryTemp: readings.batteryTemp,
       online: readings.online,
       connection: readings.connection,
       usage: usage,
@@ -162,6 +164,7 @@
     if (growth.grew) showEvolution(growth);
     render();
     if (now - lastSave > 30000) save();
+    updateWidget(now);
   }
 
   function scheduleRender() {
@@ -231,7 +234,7 @@
     ['lien', 'Lien', 'connexion'],
     ['repos', 'Repos', 'tes pauses']
   ];
-  const SOURCE_TAG = { navigateur: 'mesuré', capteur: 'capteur PC', pression: 'mesuré', fluidite: 'estimé' };
+  const SOURCE_TAG = { navigateur: 'mesuré', capteur: 'capteur PC', android: 'appli Android', pression: 'mesuré', fluidite: 'estimé' };
 
   function renderVitals() {
     const box = $('vitals');
@@ -265,17 +268,26 @@
     });
     let note;
     if (u.source === 'capteur') note = 'Mesuré par le capteur PC : tout le temps où l\'ordinateur est utilisé, même appli fermée.';
+    else if (u.source === 'android') note = 'Mesuré par l\'appli Android : tout le temps où l\'écran du téléphone est allumé, même Lumi fermé. Écran éteint 5 min = une pause.';
+    else if (readings.android) note = 'Pour compter tout ton temps d\'écran, même Lumi fermé, autorise l\'accès aux données d\'utilisation. En attendant, seul le temps passé avec Lumi ouvert compte.';
     else if (readings.idle.granted) note = 'Mesuré pendant que Lumi est ouvert ; les pauses sont détectées sur tout l\'appareil.';
     else note = 'Mesuré pendant que Lumi est ouvert dans ce navigateur. Une veille de plus de 5 min compte comme une pause.';
     $('usageNote').textContent = note;
-    $('idleBtn').hidden = !(readings.idle.supported && !readings.idle.granted && !readings.agentConnected);
+    $('idleBtn').hidden = !(readings.idle.supported && !readings.idle.granted && !readings.agentConnected && !readings.android);
+    $('usageBtn').hidden = !(readings.android && !readings.android.ecranAutorise);
   }
 
   function renderSensor() {
     const chip = $('sourceChip');
     const box = $('sensorInfo');
     clear(box);
-    if (readings.agentConnected) {
+    if (readings.android) {
+      chip.textContent = 'Appli Android';
+      chip.classList.add('on');
+      const device = readings.android.appareil ? ' sur ' + readings.android.appareil : '';
+      box.appendChild(el('span', { text: 'Lumi vit dans l\'appli Android' + device + ' : batterie, température de la batterie, connexion' +
+        (readings.android.ecranAutorise ? ' et temps d\'écran sont mesurés par le téléphone.' : ' sont mesurées par le téléphone. Le temps d\'écran attend ton autorisation.') }));
+    } else if (readings.agentConnected) {
       chip.textContent = 'Capteur PC connecté';
       chip.classList.add('on');
       const info = readings.agentInfo || {};
@@ -286,6 +298,44 @@
       box.appendChild(el('span', { text: 'Capteur PC non connecté : seules les mesures du navigateur sont utilisées. Sur ordinateur, lance « Lancer Lumi (Windows).bat », ou dans un terminal : ' }));
       box.appendChild(el('code', { text: 'python3 capteur/lumi_capteur.py' }));
     }
+  }
+
+  /* ---------- Widget de l'écran d'accueil (appli Android) ---------- */
+
+  let widgetKey = '';
+  let widgetAt = 0;
+
+  /** Envoie à l'appli Android l'image et l'état de Lumi pour son widget. */
+  function updateWidget(now) {
+    const bridge = window.LumiAndroid;
+    if (!bridge || !bridge.majWidget) return;
+    const info = Vie.stageInfo(life.lived);
+    const variant = Vie.currentVariant(life);
+    const classes = condClasses.slice();
+    const key = info.stage.shape + ':' + classes.join(',') + ':' + vitals.health + ':' + life.name;
+    // Le widget suit les changements, et se rafraîchit au moins toutes les 5 min.
+    if (key === widgetKey && now - widgetAt < 5 * Vie.MIN) return;
+    widgetKey = key;
+    widgetAt = now;
+    const state = {
+      nom: life.name,
+      age: info.stage.name + (variant ? ' ' + Vie.VARIANTS[variant].label.toLowerCase() : ''),
+      sante: vitals.health,
+      humeur: vitals.main,
+      message: vitals.message,
+      t: now
+    };
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = canvas.height = 256;
+      canvas.getContext('2d').drawImage(img, 0, 0, 256, 256);
+      try { bridge.majWidget(JSON.stringify(state), canvas.toDataURL('image/png').split(',')[1]); } catch (e) { /* widget indisponible */ }
+    };
+    img.onerror = () => {
+      try { bridge.majWidget(JSON.stringify(state), ''); } catch (e) { /* widget indisponible */ }
+    };
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(C.toImageSvg(info.stage.shape, classes, 256));
   }
 
   /* ---------- Carnet de santé ---------- */
@@ -503,6 +553,11 @@
   /* ---------- Réglages ---------- */
 
   function exportLife() {
+    // Dans l'appli Android, c'est elle qui demande où enregistrer le fichier.
+    if (window.LumiAndroid && window.LumiAndroid.exporter) {
+      window.LumiAndroid.exporter('lumi-vivant-' + Vie.dayKey(Date.now()) + '.json', Vie.exportJson(life));
+      return;
+    }
     const blob = new Blob([Vie.exportJson(life)], { type: 'application/json' });
     const link = el('a', { href: URL.createObjectURL(blob), download: 'lumi-vivant-' + Vie.dayKey(Date.now()) + '.json' });
     document.body.appendChild(link);
@@ -592,6 +647,10 @@
       const ok = await Capteurs.requestIdleDetection();
       toast(ok ? 'Lumi détecte maintenant tes pauses sur tout l\'appareil.' : 'Autorisation refusée ou indisponible.');
       render();
+    });
+    $('usageBtn').addEventListener('click', () => {
+      Capteurs.requestScreenTime();
+      toast('Dans la liste, choisis Lumi Vivant et active l\'accès, puis reviens ici.');
     });
     $('evoClose').addEventListener('click', closeEvolution);
     document.addEventListener('keydown', event => {

@@ -228,6 +228,70 @@
     equal(s.source, 'capteur');
   });
 
+  /* ---------- Téléphone Android ---------- */
+
+  function ecran(evenements, extra) {
+    return Object.assign({ debut: T0 - 12 * HOUR, allume: true, evenements: evenements }, extra || {});
+  }
+
+  test('Android : le temps d\'écran du jour additionne les périodes écran allumé', function () {
+    // Allumé de 8 h à 8 h 30, puis de 9 h 50 à maintenant (10 h).
+    var u = V.usageFromScreenEvents(ecran([[T0 - 2 * HOUR, 1], [T0 - 90 * MIN, 0], [T0 - 10 * MIN, 1]]), T0);
+    near(u.activeTodayMin, 40, 0.01, 'minutes aujourd\'hui');
+    near(u.sessionMin, 10, 0.01, 'session depuis le dernier allumage');
+    equal(u.lastBreak, T0 - 10 * MIN, 'la pause finit au rallumage');
+    equal(u.onBreak, false);
+    equal(u.source, 'android');
+  });
+
+  test('Android : un écran éteint moins de 5 min ne coupe pas la session', function () {
+    var u = V.usageFromScreenEvents(ecran([[T0 - 60 * MIN, 1], [T0 - 30 * MIN, 0], [T0 - 28 * MIN, 1]]), T0);
+    near(u.sessionMin, 60, 0.01, 'session d\'une heure');
+    near(u.activeTodayMin, 58, 0.01);
+    equal(u.lastBreak, null);
+    var v = V.computeVitals(input({ usage: u }));
+    equal(v.main, 'needsBreak');
+  });
+
+  test('Android : écran éteint depuis 5 min = en pause', function () {
+    var u = V.usageFromScreenEvents(ecran([[T0 - 60 * MIN, 1], [T0 - 6 * MIN, 0]], { allume: false }), T0);
+    equal(u.onBreak, true);
+    equal(u.sessionMin, 0);
+    equal(u.lastBreak, T0 - 6 * MIN);
+  });
+
+  test('Android : le temps d\'avant minuit ne compte pas aujourd\'hui, la nuit est comptée', function () {
+    var midnight = new Date(2026, 9, 2, 0, 0, 0).getTime();
+    // Allumé de 23 h la veille à 0 h 30, éteint (premier évènement : extinction).
+    var u = V.usageFromScreenEvents({ debut: midnight - HOUR, allume: false, evenements: [[midnight + 30 * MIN, 0]] }, T0);
+    near(u.activeTodayMin, 30, 0.01, 'seulement après minuit');
+    near(u.nightTodayMin, 30, 0.01, 'après minuit, c\'est la nuit');
+  });
+
+  test('Android : sans évènement, l\'écran allumé compte depuis le début du relevé', function () {
+    var u = V.usageFromScreenEvents({ debut: T0 - 20 * MIN, allume: true, evenements: [] }, T0);
+    near(u.sessionMin, 20, 0.01);
+    near(u.activeTodayMin, 20, 0.01);
+  });
+
+  test('Batterie de téléphone chaude : Lumi transpire', function () {
+    equal(V.calmFromBatteryTemp(30), 100);
+    equal(V.calmFromBatteryTemp(40), 60);
+    var battery = { level: 0.8, charging: false, source: 'android' };
+    var cool = V.computeVitals(input({ battery: battery, stress: null, batteryTemp: 32 }));
+    equal(cool.gauges.calme.value, 100);
+    equal(cool.gauges.calme.source, 'android');
+    var hot = V.computeVitals(input({ battery: battery, stress: null, batteryTemp: 46 }));
+    equal(hot.gauges.calme.detail, 'Batterie à 46 °C');
+    equal(hot.main, 'stressed');
+  });
+
+  test('La température de batterie ne cache pas un processeur surchargé', function () {
+    var v = V.computeVitals(input({ stress: { value: 90, source: 'capteur' }, batteryTemp: 30 }));
+    equal(v.gauges.calme.value, 10);
+    equal(v.gauges.calme.detail, 'Processeur à 90 %');
+  });
+
   /* ---------- Soins et carnet ---------- */
 
   test('Les soins suivent la santé, lissés sur 6 h de vie', function () {

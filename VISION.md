@@ -55,9 +55,11 @@ appareil et de tes habitudes.
 ## La suite
 
 1. **Aujourd'hui** — appli web installable + capteur PC (ce projet).
-2. **Étape 2 — appli Android native** : lire le vrai temps d'écran
+2. **Étape 2 — appli Android native** (dossier `android/`) : lire le vrai temps d'écran
    (`UsageStatsManager`, avec autorisation), la batterie et sa température
    (`BatteryManager`), et afficher Lumi en **widget** sur l'écran d'accueil.
+   Première version faite : l'appli reprend le Lumi web dans une WebView et lui ajoute
+   ces mesures. Le widget montre Lumi tel qu'à la dernière ouverture de l'appli.
 3. **Étape 3 — rappels** : notifications de pause et de coucher, réglables.
 4. **Étape 4 — plusieurs appareils** : un compagnon par appareil, ou un seul Lumi
    nourri par l'ordinateur et le téléphone.

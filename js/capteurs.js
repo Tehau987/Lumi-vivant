@@ -1,12 +1,16 @@
 /*
  * capteurs.js — Ce que l'appareil laisse mesurer, normalisé pour vie.js.
  *
- * Deux sources :
+ * Trois sources :
  *  1. Le navigateur (partout, partiel) : batterie (Chrome, Edge, Android), charge du
  *     processeur (Chrome récent), fluidité de la page, connexion, activité et inactivité.
  *  2. Le capteur PC (capteur/lumi_capteur.py), s'il tourne : processeur, mémoire,
  *     disque, batterie, température, vrai temps actif et pauses, même appli fermée.
- * Rien ne quitte l'appareil : le capteur PC répond seulement sur 127.0.0.1.
+ *  3. L'appli Android (dossier android/), quand Lumi y est ouvert : elle fournit
+ *     window.LumiAndroid (batterie et sa température, mémoire, stockage, connexion,
+ *     allumages de l'écran).
+ * Rien ne quitte l'appareil : le capteur PC répond seulement sur 127.0.0.1, et l'appli
+ * Android n'a même pas la permission d'aller sur internet.
  */
 (function () {
   'use strict';
@@ -25,6 +29,9 @@
     agent: { connected: false, data: null, lastOk: 0, tries: 0, history: null, historyAt: 0 },
     support: { battery: false, pressure: false, connection: false }
   };
+
+  /* L'appli Android, si Lumi tourne dedans. Ses mesures sont relues au plus toutes les 4 s. */
+  const android = { bridge: window.LumiAndroid || null, data: null, at: 0 };
 
   const listeners = [];
   function emit() { listeners.forEach(fn => fn()); }
@@ -166,12 +173,35 @@
     setTimeout(pollAgent, delay);
   }
 
+  /* ---------- Appli Android ---------- */
+
+  function readAndroid() {
+    if (!android.bridge) return null;
+    if (Date.now() - android.at > 4000) {
+      try {
+        android.data = JSON.parse(android.bridge.mesures());
+      } catch (e) {
+        android.data = null;
+      }
+      android.at = Date.now();
+    }
+    return android.data;
+  }
+
+  /** Ouvre l'écran des réglages Android où l'on autorise l'accès au temps d'écran. */
+  function requestScreenTime() {
+    if (android.bridge) android.bridge.ouvrirReglagesUsage();
+    android.at = 0;
+  }
+
   /* ---------- Lecture normalisée ---------- */
 
   function read() {
     const a = state.agent.connected ? state.agent.data : null;
+    const d = readAndroid();
     let battery = null;
-    if (a && a.batterie) battery = { level: a.batterie.niveau, charging: !!a.batterie.en_charge, source: 'capteur' };
+    if (d && d.batterie) battery = { level: d.batterie.niveau, charging: !!d.batterie.en_charge, source: 'android' };
+    else if (a && a.batterie) battery = { level: a.batterie.niveau, charging: !!a.batterie.en_charge, source: 'capteur' };
     else if (a && a.alimentation === 'secteur') battery = { level: 1, charging: true, mains: true, source: 'capteur' };
     else if (state.battery) battery = { level: state.battery.level, charging: state.battery.charging, source: 'navigateur' };
 
@@ -186,16 +216,18 @@
     return {
       battery,
       stress,
-      memory: a && typeof a.memoire === 'number' ? { value: a.memoire, source: 'capteur' } : null,
-      disk: a && typeof a.disque === 'number' ? { value: a.disque, source: 'capteur' } : null,
+      memory: d && typeof d.memoire === 'number' ? { value: d.memoire, source: 'android' } : a && typeof a.memoire === 'number' ? { value: a.memoire, source: 'capteur' } : null,
+      disk: d && typeof d.disque === 'number' ? { value: d.disque, source: 'android' } : a && typeof a.disque === 'number' ? { value: a.disque, source: 'capteur' } : null,
       temperature: a && typeof a.temperature === 'number' ? a.temperature : null,
-      online: state.online,
-      connection: state.connection,
+      batteryTemp: d && d.batterie && typeof d.batterie.temperature === 'number' ? d.batterie.temperature : null,
+      online: d && d.reseau ? !!d.reseau.en_ligne : state.online,
+      connection: d && d.reseau && d.reseau.en_ligne ? { type: d.reseau.type } : state.connection,
       active: isActive(),
       agentUsage: a && a.usage ? a.usage : null,
       agentConnected: !!a,
       agentInfo: a ? { systeme: a.systeme, machine: a.machine } : null,
       agentHistory: state.agent.connected ? state.agent.history : null,
+      android: d ? { appareil: d.appareil, ecran: d.ecran && d.ecran.autorise ? d.ecran : null, ecranAutorise: !!(d.ecran && d.ecran.autorise) } : null,
       idle: { supported: state.idle.supported, granted: state.idle.granted },
       support: state.support
     };
@@ -208,8 +240,9 @@
     initResponsiveness();
     initNetwork();
     initInput();
-    pollAgent();
+    // Le capteur PC vit sur un ordinateur : inutile de le chercher dans l'appli Android.
+    if (!android.bridge) pollAgent();
   }
 
-  window.LumiCapteurs = { start, read, requestIdleDetection };
+  window.LumiCapteurs = { start, read, requestIdleDetection, requestScreenTime };
 })();

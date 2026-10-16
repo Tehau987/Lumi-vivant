@@ -229,7 +229,64 @@
     };
   }
 
+  /**
+   * Le même résumé, à partir des allumages et extinctions de l'écran d'un téléphone
+   * Android (appli native). ecran = { debut, allume, evenements: [[t, 1 allumé | 0 éteint], …] } :
+   * les évènements depuis « debut », et l'état de l'écran maintenant (« allume »).
+   * Écran éteint 5 min ou plus = une pause.
+   */
+  function usageFromScreenEvents(ecran, now) {
+    var events = (ecran.evenements || []).slice().sort(function (a, b) { return a[0] - b[0]; });
+    // Les périodes où l'écran était allumé. Avant le premier évènement, l'écran était
+    // dans l'état inverse de celui-ci (sans évènement : dans son état actuel).
+    var spans = [];
+    var onBefore = events.length ? !events[0][1] : !!ecran.allume;
+    var onSince = onBefore ? ecran.debut : null;
+    events.forEach(function (e) {
+      if (e[1] && onSince === null) onSince = e[0];
+      else if (!e[1] && onSince !== null) {
+        if (e[0] > onSince) spans.push([onSince, e[0]]);
+        onSince = null;
+      }
+    });
+    var screenOn = onSince !== null;
+    if (screenOn && now > onSince) spans.push([onSince, now]);
+
+    var d = new Date(now);
+    var dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    var nights = [[dayStart, dayStart + 6 * HOUR], [dayStart + 23 * HOUR, dayStart + DAY]];
+    function overlap(a, b) { return Math.max(0, Math.min(a[1], b[1]) - Math.max(a[0], b[0])); }
+    var activeMs = 0;
+    var nightMs = 0;
+    var lastBreak = null;
+    var sessionStart = spans.length ? spans[0][0] : now;
+    spans.forEach(function (sp, i) {
+      activeMs += overlap(sp, [dayStart, now]);
+      nights.forEach(function (n) { nightMs += overlap(sp, n); });
+      if (i > 0 && sp[0] - spans[i - 1][1] >= BREAK_AFTER) {
+        lastBreak = sp[0];
+        sessionStart = sp[0];
+      }
+    });
+    var lastOff = spans.length ? spans[spans.length - 1][1] : null;
+    var onBreak = !screenOn && (lastOff === null || now - lastOff >= BREAK_AFTER);
+    if (onBreak && lastOff !== null) lastBreak = lastOff;
+    return {
+      activeTodayMin: activeMs / MIN,
+      nightTodayMin: nightMs / MIN,
+      sessionMin: onBreak ? 0 : Math.max(0, now - sessionStart) / MIN,
+      lastBreak: lastBreak,
+      onBreak: onBreak,
+      source: 'android'
+    };
+  }
+
   /* ---------- Santé ---------- */
+
+  /** Le calme selon la température de la batterie : plein jusqu'à 35 °C, en détresse vers 44 °C. */
+  function calmFromBatteryTemp(celsius) {
+    return clamp(100 - Math.max(0, celsius - 35) * 8);
+  }
 
   function stressFromPressure(state) {
     return PRESSURE[state] !== undefined ? PRESSURE[state] : null;
@@ -237,7 +294,7 @@
 
   /**
    * Traduit les mesures en jauges, en santé globale et en états.
-   * input = { battery, stress, memory, disk, temperature, online, connection, usage, hour, care, name }
+   * input = { battery, stress, memory, disk, temperature, batteryTemp, online, connection, usage, hour, care, name }
    * Une mesure absente vaut null : sa jauge est ignorée dans la santé globale.
    */
   function computeVitals(input) {
@@ -252,12 +309,20 @@
     // Calme : l'inverse du stress du processeur (ou de la fièvre).
     var st = input.stress;
     var calme = st ? clamp(100 - st.value) : null;
+    var calmeSource = st ? st.source : 'capteur';
+    var detail = st ? (st.source === 'capteur' ? 'Processeur à ' + Math.round(st.value) + ' %' : st.label || 'Estimation') : '';
+    // Téléphone : une batterie qui chauffe stresse aussi Lumi (on garde le pire des deux).
+    var bt = input.batteryTemp;
+    if (typeof bt === 'number' && (calme === null || calmFromBatteryTemp(bt) < calme)) {
+      calme = calmFromBatteryTemp(bt);
+      detail = 'Batterie à ' + Math.round(bt) + ' °C';
+      calmeSource = b && b.source ? b.source : 'android';
+    }
     var hot = typeof input.temperature === 'number' && input.temperature >= 85;
     if (hot) calme = Math.min(calme === null ? 100 : calme, 20);
     if (calme !== null) {
-      var detail = st ? (st.source === 'capteur' ? 'Processeur à ' + Math.round(st.value) + ' %' : st.label || 'Estimation') : '';
       if (hot) detail = 'Fièvre : ' + Math.round(input.temperature) + ' °C';
-      g.calme = { value: Math.round(calme), detail: detail, source: st ? st.source : 'capteur' };
+      g.calme = { value: Math.round(calme), detail: detail, source: calmeSource };
     } else {
       g.calme = { value: null, detail: 'Indisponible ici', source: null };
     }
@@ -434,6 +499,8 @@
     takeBreak: takeBreak,
     usageSummary: usageSummary,
     usageFromAgent: usageFromAgent,
+    usageFromScreenEvents: usageFromScreenEvents,
+    calmFromBatteryTemp: calmFromBatteryTemp,
     stressFromPressure: stressFromPressure,
     computeVitals: computeVitals,
     updateCare: updateCare,
