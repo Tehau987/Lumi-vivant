@@ -23,6 +23,7 @@
   --balise: #ffb35c;
   --texte: #ddf6ff;
   --texte-doux: #8fb3c4;
+  --noir: #000000;
   --f-titre: Bahnschrift, "DIN Alternate", "DIN Condensed", "Roboto Condensed", "Arial Narrow", system-ui, sans-serif;
   --f-texte: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --f-mono: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, monospace;
@@ -217,6 +218,27 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
 .sources { margin: 8px 0 0; padding-left: 18px; color: var(--texte-doux); font-size: 13px; }
 .sources li + li { margin-top: 6px; }
 
+/* ---------- Mode pyramide : quatre vues sur du noir pur, pour une pyramide posée sur l'écran ---------- */
+.pyramide { position: fixed; inset: 0; z-index: 20; background: var(--noir); }
+.pyramide canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+#pyr-halo { filter: blur(6px) saturate(1.3); opacity: .9; pointer-events: none; }
+#pyr-toile { touch-action: none; }
+/* L'aide se range hors de la croix : en haut sur un écran en hauteur, à gauche en largeur. */
+.pyr-aide {
+  position: absolute; top: calc(14px + env(safe-area-inset-top, 0px)); left: 16px; right: 120px; max-width: 48ch;
+  color: var(--texte-doux); font-size: 12px; line-height: 1.45; pointer-events: none; transition: opacity .8s ease;
+}
+.pyr-aide h2 {
+  margin: 0 0 6px; color: var(--faisceau);
+  font: 600 11px/1.3 var(--f-mono); letter-spacing: .14em; text-transform: uppercase;
+}
+.pyr-aide p { margin: 0 0 6px; }
+.pyr-aide.cache { opacity: 0; }
+.pyr-quitter { position: absolute; top: calc(14px + env(safe-area-inset-top, 0px)); right: 16px; background: var(--noir); }
+@media (orientation: landscape) {
+  .pyr-aide { right: auto; max-width: max(160px, calc(50vw - 45vh - 32px)); }
+}
+
 /* À la souris, le panneau d'ascenseur peut être plus serré, pour laisser voir la fiche. */
 @media (pointer: fine) and (min-width: 901px) {
   .ascenseur { gap: 2px; }
@@ -292,6 +314,7 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
           <button type="button" class="bouton" id="vue-perspective" data-vue="perspective" aria-label="Perspective"><span class="long">Perspective</span><span class="court">3D</span></button>
           <button type="button" class="bouton" id="vue-plan" data-vue="plan">Plan</button>
           <button type="button" class="bouton" id="vue-elevation" data-vue="elevation">Élévation</button>
+          <button type="button" class="bouton" id="vue-pyramide" aria-haspopup="dialog">Pyramide</button>
         </div>
         <div class="groupe" role="group" aria-label="Affichage">
           <button type="button" class="bouton" id="b-rotation" aria-pressed="true">Rotation</button>
@@ -338,6 +361,17 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
   </main>
   <p class="vh" id="annonce" aria-live="polite"></p>
   <noscript><p>Cette page a besoin de JavaScript pour afficher l'hologramme.</p></noscript>
+</div>
+
+<div class="pyramide" id="pyramide" role="dialog" aria-modal="true" aria-labelledby="pyr-titre" hidden>
+  <canvas id="pyr-halo" aria-hidden="true"></canvas>
+  <canvas id="pyr-toile" role="img" aria-label="Quatre vues du bâtiment, disposées en croix pour une pyramide holographique."></canvas>
+  <div class="pyr-aide" id="pyr-aide">
+    <h2 id="pyr-titre">Mode pyramide</h2>
+    <p>Poser une pyramide transparente, pointe vers le bas, au centre de l'écran, puis baisser la lumière : le bâtiment flotte au milieu.</p>
+    <p>Pyramide maison : 4 trapèzes de plastique transparent (6 cm en bas, 1 cm en haut, 3,5 cm de haut), collés par les côtés.</p>
+  </div>
+  <button type="button" class="bouton pyr-quitter" id="pyr-quitter">Quitter</button>
 </div>
 
 <script>
@@ -490,7 +524,7 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
   function lot(options) {
     const l = Object.assign({
       cellule: null, couleur: 'faisceau', alpha: 0.8, largeur: 1,
-      tirets: null, remplissage: 0, flux: false, segs: [], polys: []
+      tirets: null, remplissage: 0, flux: false, fin: false, segs: [], polys: []
     }, options);
     lots.push(l);
     return l;
@@ -553,7 +587,7 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
       return;
     }
     // Façades : un meneau tous les 6 m et un bandeau de fenêtres.
-    const facade = lot({ cellule: c.cle, couleur: sec.couleur, alpha: 0.3 });
+    const facade = lot({ cellule: c.cle, couleur: sec.couleur, alpha: 0.3, fin: true });
     for (let i = 1; i < bas.aller.length - 1; i++) {
       relier(facade, bas.aller[i], haut.aller[i]);
       relier(facade, bas.retour[i], haut.retour[i]);
@@ -574,7 +608,7 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
 
   // Au niveau −1, les piliers du parking sont peints aux couleurs du secteur.
   function piliers(c, sec, y0, y1) {
-    const l = lot({ cellule: c.cle, couleur: sec.couleur, alpha: 0.55, largeur: 1.4 });
+    const l = lot({ cellule: c.cle, couleur: sec.couleur, alpha: 0.55, largeur: 1.4, fin: true });
     for (let x = sec.x0 + 5; x <= sec.x1 - 4; x += 9) {
       const w = demiLargeur(x, sec.id) - 3;
       for (let z = -16; z <= 16; z += 8) {
@@ -645,7 +679,7 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
   }
 
   function locauxTechniques(c, y0) {
-    const l = lot({ cellule: c.cle, couleur: 'montagne', alpha: 0.45 });
+    const l = lot({ cellule: c.cle, couleur: 'montagne', alpha: 0.45, fin: true });
     [[-96, -80, -8, 8, 2.6], [-64, -50, -13, -3, 2.2], [-64, -50, 3, 13, 2.2]]
       .forEach(b => boite(l, b[0], b[1], b[2], b[3], y0, y0 + b[4], TOIT));
   }
@@ -771,13 +805,13 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
     return e === FIXE ? 0 : etat.explosion * ECART * (e + 1);
   }
 
-  function preparerCamera(t) {
+  function preparerCamera(t, cap, incl, recul) {
     base.ty = 7 + etat.explosion * 17 + (calme ? 0 : Math.sin(t * 0.8) * 0.5);
-    base.d = cam.recul + etat.explosion * 60;
-    base.ct = Math.cos(cam.cap);
-    base.st = Math.sin(cam.cap);
-    base.cp = Math.cos(cam.incl);
-    base.sp = Math.sin(cam.incl);
+    base.d = recul + etat.explosion * 60;
+    base.ct = Math.cos(cap);
+    base.st = Math.sin(cap);
+    base.cp = Math.cos(incl);
+    base.sp = Math.sin(incl);
   }
 
   // Coordonnées à l'écran (pixels du canevas) et profondeur d'un point du monde.
@@ -789,8 +823,8 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
     const z2 = oy * base.sp + z1 * base.cp;
     const d = base.d - z2;
     sortie.d = d;
-    sortie.x = ecran.cx + ecran.f * x1 / d;
-    sortie.y = ecran.cy - ecran.f * y2 / d;
+    sortie.x = R.cx + R.f * x1 / d;
+    sortie.y = R.cy - R.f * y2 / d;
     return d > 10;
   }
 
@@ -816,6 +850,9 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
   const hctx = halo.getContext('2d');
   const tampon = document.createElement('canvas');   // sert aux petits parasites
   const tctx = tampon.getContext('2d');
+  // La cible du dessin : l'écran principal, ou l'une des vues du mode pyramide.
+  ecran.ctx = ctx;
+  let R = ecran;
   const PALETTE = {};
   let policeTitre = 'sans-serif';
   let policeMono = 'monospace';
@@ -865,54 +902,64 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
   // Vus du dessus, les étages se superposent et leur lumière s'additionne : on la tempère.
   let dessus = 0;
 
-  function dessiner(t) {
-    if (!ecran.larg || !ecran.haut) return;
-    preparerCamera(t);
+  // Dessine le bâtiment dans la cible R, vu depuis (cap, incl, recul).
+  // « complet » ajoute le décor (projecteur, mer, montagne, SWAC) et les étiquettes.
+  function dessinerScene(t, cap, incl, recul, complet) {
+    const ctx = R.ctx;
+    preparerCamera(t, cap, incl, recul);
     projeterSommets();
-    dessus = Math.pow(Math.sin(borne(cam.incl, 0, Math.PI / 2)), 2);
+    dessus = Math.pow(Math.sin(borne(incl, 0, Math.PI / 2)), 2);
     ctx.globalCompositeOperation = 'source-over';
-    ctx.clearRect(0, 0, ecran.larg, ecran.haut);
+    ctx.clearRect(0, 0, R.larg, R.haut);
     ctx.globalCompositeOperation = 'lighter';
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
     // Pendant l'apparition, le bâtiment se construit de bas en haut.
     const hIntro = etat.intro < 1 ? -H - 1 + etat.intro * (TOIT * H + 11 + H) : Infinity;
-    projecteur(t);
-    vagues(t);
+    if (complet) {
+      projecteur(t);
+      vagues(t);
+    }
     remplissages(hIntro);
-    traits(t, hIntro);
+    traits(t, hIntro, complet);
     feuxHelistation(t, hIntro);
     if (etat.intro < 1) {
       if (hIntro <= TOIT * H + 1.1) coupe(hIntro, 0.9, 0.08);
     } else {
       balayage(t);
     }
-
     ctx.globalCompositeOperation = 'source-over';
-    if (etat.apparition > 0) etiquettes();
-    if (t < etat.glitchFin) parasites();
+    if (complet && etat.apparition > 0) etiquettes();
+  }
 
+  function dessiner(t) {
+    if (!ecran.larg || !ecran.haut) return;
+    R = ecran;
+    dessinerScene(t, cam.cap, cam.incl, cam.recul, true);
+    if (t < etat.glitchFin) parasites();
     hctx.clearRect(0, 0, halo.width, halo.height);
     hctx.drawImage(toile, 0, 0, halo.width, halo.height);
   }
 
   const TRANCHES = [1, 0.68, 0.42];   // les traits du fond sont plus pâles
 
-  function traits(t, hIntro) {
-    const dpr = ecran.dpr;
+  function traits(t, hIntro, complet) {
+    const ctx = R.ctx;
+    const dpr = R.dpr;
     const pmin = base.d - 150;
     const pmax = base.d + 150;
     const decor = decorAlpha();
     for (const l of lots) {
       const c = l.cellule ? cellules.get(l.cellule) : null;
+      if (!complet && (!c || l.fin)) continue;
       const a = l.alpha * etat.scintil * (c ? c.vis * (1 + 0.7 * c.survol) * (1 - 0.35 * dessus * dessus) : decor);
       if (a < 0.01) continue;
       ctx.lineWidth = l.largeur * dpr * (c && estChoisie(c) ? 1.4 : 1);
       ctx.setLineDash(l.tirets ? l.tirets.map(v => v * dpr) : []);
       ctx.lineDashOffset = l.flux && !calme ? t * 14 * dpr : 0;
       const s = l.segs;
-      for (let b = 0; b < 3; b++) {
+      for (let b = 0; b < (complet ? 3 : 1); b++) {
         ctx.beginPath();
         let trace = false;
         for (let j = 0; j < s.length; j += 2) {
@@ -920,7 +967,7 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
           const q = s[j + 1];
           if (PD[p] < 0 || PD[q] < 0) continue;
           const u = ((PD[p] + PD[q]) * 0.5 - pmin) / (pmax - pmin);
-          if ((u < 0.36 ? 0 : u < 0.68 ? 1 : 2) !== b) continue;
+          if (complet && (u < 0.36 ? 0 : u < 0.68 ? 1 : 2) !== b) continue;
           let x1 = PX[p], y1 = PY[p], x2 = PX[q], y2 = PY[q];
           if (c && hIntro !== Infinity) {
             const ya = GY[p];
@@ -948,6 +995,7 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
   }
 
   function remplissages(hIntro) {
+    const ctx = R.ctx;
     for (const l of lots) {
       if (!l.remplissage) continue;
       const c = cellules.get(l.cellule);
@@ -976,23 +1024,24 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
 
   function segment3d(x1, y1, z1, x2, y2, z2) {
     if (!projeter(x1, y1, z1, P1) || !projeter(x2, y2, z2, P2)) return;
-    ctx.moveTo(P1.x, P1.y);
-    ctx.lineTo(P2.x, P2.y);
+    R.ctx.moveTo(P1.x, P1.y);
+    R.ctx.lineTo(P2.x, P2.y);
   }
 
   // Le socle du projecteur : une lueur, des graduations et des arcs qui tournent.
   function projecteur(t) {
-    const dpr = ecran.dpr;
+    const ctx = R.ctx;
+    const dpr = R.dpr;
     const tour = calme ? 0 : t * 0.06;
     const a0 = Math.min(1, 0.25 + etat.intro * 2) * etat.scintil;
     if (projeter(0, Y_PROJECTEUR, 0, P1)) {
-      const r = ecran.f * RAYON_DISQUE / P1.d;
+      const r = R.f * RAYON_DISQUE / P1.d;
       const g = ctx.createRadialGradient(P1.x, P1.y, 0, P1.x, P1.y, r);
       g.addColorStop(0, teinte('faisceau', 0.15 * a0));
       g.addColorStop(1, teinte('faisceau', 0));
       ctx.save();
       ctx.translate(P1.x, P1.y);
-      ctx.scale(1, Math.max(0.06, Math.abs(Math.sin(cam.incl))));
+      ctx.scale(1, Math.max(0.06, Math.abs(base.sp)));
       ctx.translate(-P1.x, -P1.y);
       ctx.fillStyle = g;
       ctx.beginPath();
@@ -1025,8 +1074,9 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
 
   // Côté mer : la houle, au-delà de Pae miti.
   function vagues(t) {
+    const ctx = R.ctx;
     const a = decorAlpha() * etat.scintil;
-    ctx.lineWidth = ecran.dpr;
+    ctx.lineWidth = R.dpr;
     for (let i = 0; i < 6; i++) {
       const x0 = 134 + i * 11;
       const w = Math.sqrt(Math.max(0, RAYON_DISQUE * RAYON_DISQUE - (x0 + 4) * (x0 + 4)));
@@ -1045,6 +1095,7 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
   }
 
   function feuxHelistation(t, hIntro) {
+    const ctx = R.ctx;
     const c = cellules.get(TOIT + '|mer');
     if (TOIT * H > hIntro) return;
     const a = c.vis * etat.scintil;
@@ -1054,7 +1105,7 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
       const allume = calme || Math.sin(t * 3.2 - i * 0.8) > 0 ? 1 : 0.25;
       ctx.fillStyle = teinte('balise', a * allume);
       ctx.beginPath();
-      ctx.arc(PX[v], PY[v], 1.8 * ecran.dpr, 0, Math.PI * 2);
+      ctx.arc(PX[v], PY[v], 1.8 * R.dpr, 0, Math.PI * 2);
       ctx.fill();
     });
   }
@@ -1069,6 +1120,7 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
 
   // Le contour du bâtiment à la hauteur y, en surbrillance.
   function coupe(y, aTrait, aFond) {
+    const ctx = R.ctx;
     const yy = y + decalage(borne(Math.floor(y / H), -1, TOIT));
     ctx.beginPath();
     for (let i = 0; i < PROFIL.length; i++) {
@@ -1079,7 +1131,7 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
     ctx.closePath();
     ctx.fillStyle = teinte('faisceau', aFond * etat.scintil);
     ctx.fill();
-    ctx.lineWidth = 1.4 * ecran.dpr;
+    ctx.lineWidth = 1.4 * R.dpr;
     ctx.strokeStyle = teinte('faisceau', aTrait * etat.scintil);
     ctx.stroke();
   }
@@ -1096,11 +1148,12 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
   ];
 
   function etiquettes() {
-    const dpr = ecran.dpr;
+    const ctx = R.ctx;
+    const dpr = R.dpr;
     const marge = 10 * dpr;
     const policeNom = '600 ' + Math.round(11.5 * dpr) + 'px ' + policeTitre;
     const policeSous = '500 ' + Math.round(10 * dpr) + 'px ' + policeMono;
-    const centreX = projeter(0, 9, 0, P2) ? P2.x : ecran.cx;
+    const centreX = projeter(0, 9, 0, P2) ? P2.x : R.cx;
     const decor = Math.max(0.6, decorAlpha());
     ctx.textBaseline = 'middle';
     ctx.lineWidth = dpr;
@@ -1131,8 +1184,8 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
       const hauteur = (et.sous ? 26 : 13) * dpr;
       // Le bloc de texte reste toujours dans le cadre.
       const droite = dx >= 0;
-      const x0 = borne(droite ? ex + 8 * dpr : ex - 8 * dpr - largeur, marge, ecran.larg - marge - largeur);
-      const y0 = borne(ey - 6.5 * dpr, marge, ecran.haut - marge - hauteur);
+      const x0 = borne(droite ? ex + 8 * dpr : ex - 8 * dpr - largeur, marge, R.larg - marge - largeur);
+      const y0 = borne(ey - 6.5 * dpr, marge, R.haut - marge - hauteur);
       ctx.strokeStyle = teinte(et.couleur, a * 0.7);
       ctx.beginPath();
       ctx.moveTo(ax, ay);
@@ -1156,7 +1209,8 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
 
   // Les numéros d'étage au bout côté montagne, quand ils ont la place d'être lus.
   function numerosEtages(centreX) {
-    const dpr = ecran.dpr;
+    const ctx = R.ctx;
+    const dpr = R.dpr;
     const pos = [];
     for (let k = -1; k <= 3; k++) {
       if (!projeter(-BOUT - 3, k * H + H * 0.45 + decalage(k), 0, P1)) return;
@@ -1736,7 +1790,158 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
   }
 
   /* ======================================================================
-   * 7. LA BOUCLE — environ 60 images par seconde
+   * 7. LE MODE PYRAMIDE — un vrai petit hologramme.
+   *    Une pyramide transparente posée pointe en bas sur l'écran reflète
+   *    quatre vues (effet « fantôme de Pepper ») : le bâtiment semble
+   *    flotter au milieu. Chaque face montre le bâtiment vu de son côté,
+   *    retourné comme il faut pour que le reflet soit à l'endroit.
+   * ====================================================================== */
+
+  const pyr = {
+    zone: $('pyramide'),
+    toile: $('pyr-toile'),
+    halo: $('pyr-halo'),
+    actif: false,
+    larg: 0,
+    haut: 0,
+    verrou: null,
+    minuteurAide: null,
+    // Une vue carrée, dessinée quatre fois par image puis posée autour du centre.
+    vue: { toile: document.createElement('canvas'), larg: 0, haut: 0, dpr: 1, cx: 0, cy: 0, f: 1 }
+  };
+  pyr.ctx = pyr.toile.getContext('2d');
+  pyr.hctx = pyr.halo.getContext('2d');
+  pyr.vue.ctx = pyr.vue.toile.getContext('2d');
+
+  // angle : de quel côté on regarde le bâtiment ; m : comment retourner la vue
+  // pour le reflet (matrice du canevas) ; dx, dy : où la poser autour du centre.
+  const FACES = [
+    { angle: 0, m: [1, 0, 0, -1], dx: 0, dy: 1 },             // en bas
+    { angle: Math.PI / 2, m: [0, -1, -1, 0], dx: 1, dy: 0 },   // à droite
+    { angle: Math.PI, m: [-1, 0, 0, 1], dx: 0, dy: -1 },       // en haut
+    { angle: -Math.PI / 2, m: [0, 1, 1, 0], dx: -1, dy: 0 }    // à gauche
+  ];
+
+  function taillerPyramide() {
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const boite = pyr.zone.getBoundingClientRect();
+    pyr.larg = Math.max(1, Math.round(boite.width * dpr));
+    pyr.haut = Math.max(1, Math.round(boite.height * dpr));
+    pyr.toile.width = pyr.larg;
+    pyr.toile.height = pyr.haut;
+    pyr.halo.width = Math.max(1, Math.round(pyr.larg / 2));
+    pyr.halo.height = Math.max(1, Math.round(pyr.haut / 2));
+    // Chaque vue occupe 30 % du petit côté, entre 15 % et 45 % du centre :
+    // les quatre carrés ne se touchent pas et restent dans les faces de la pyramide.
+    const q = Math.max(1, Math.round(Math.min(pyr.larg, pyr.haut) * 0.3));
+    const v = pyr.vue;
+    v.toile.width = q;
+    v.toile.height = q;
+    v.larg = q;
+    v.haut = q;
+    v.dpr = dpr;
+    v.cx = q / 2;
+    v.cy = q * 0.55;
+    v.f = q * 0.5 / Math.tan(19 * Math.PI / 180);
+  }
+
+  function dessinerPyramide(t) {
+    const ctx = pyr.ctx;
+    const v = pyr.vue;
+    const q = v.larg;
+    const cx = pyr.larg / 2;
+    const cy = pyr.haut / 2;
+    const d = Math.min(pyr.larg, pyr.haut) * 0.3;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, pyr.larg, pyr.haut);
+    R = v;
+    FACES.forEach(face => {
+      dessinerScene(t, cam.cap + face.angle, 0.12, 380, false);
+      ctx.setTransform(face.m[0], face.m[1], face.m[2], face.m[3], cx + face.dx * d, cy + face.dy * d);
+      ctx.drawImage(v.toile, -q / 2, -q / 2, q, q);
+    });
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    R = ecran;
+    pyr.hctx.clearRect(0, 0, pyr.halo.width, pyr.halo.height);
+    pyr.hctx.drawImage(pyr.toile, 0, 0, pyr.halo.width, pyr.halo.height);
+  }
+
+  // L'aide s'efface au bout de 8 secondes pour ne pas se refléter ; toucher l'écran la ramène.
+  function montrerAidePyramide() {
+    const aide = $('pyr-aide');
+    aide.classList.remove('cache');
+    clearTimeout(pyr.minuteurAide);
+    pyr.minuteurAide = setTimeout(() => aide.classList.add('cache'), 8000);
+  }
+
+  // Plein écran et écran allumé : utiles, mais pas toujours permis ; on s'en passe sinon.
+  function sansErreur(promesse) {
+    if (promesse && promesse.catch) promesse.catch(() => {});
+  }
+
+  function ouvrirPyramide() {
+    pyr.actif = true;
+    pyr.zone.hidden = false;
+    document.querySelector('.page').inert = true;
+    taillerPyramide();
+    montrerAidePyramide();
+    $('pyr-quitter').focus();
+    if (pyr.zone.requestFullscreen) sansErreur(pyr.zone.requestFullscreen());
+    if (navigator.wakeLock) {
+      navigator.wakeLock.request('screen').then(v => { pyr.verrou = v; }).catch(() => {});
+    }
+  }
+
+  function fermerPyramide() {
+    if (!pyr.actif) return;
+    pyr.actif = false;
+    pyr.zone.hidden = true;
+    document.querySelector('.page').inert = false;
+    clearTimeout(pyr.minuteurAide);
+    if (pyr.verrou) {
+      sansErreur(pyr.verrou.release());
+      pyr.verrou = null;
+    }
+    // En plein écran, le reste de la page ne peut pas recevoir le focus : on attend d'en sortir.
+    const revenir = () => $('vue-pyramide').focus();
+    const sortie = document.fullscreenElement && document.exitFullscreen ? document.exitFullscreen() : null;
+    if (sortie && sortie.then) sortie.then(revenir, revenir);
+    else revenir();
+  }
+
+  $('vue-pyramide').addEventListener('click', ouvrirPyramide);
+  $('pyr-quitter').addEventListener('click', fermerPyramide);
+  pyr.zone.addEventListener('keydown', ev => {
+    if (ev.key === 'Escape') fermerPyramide();
+    else if (ev.key !== 'Tab') return;   // Tab reste sur le seul bouton : Quitter
+    ev.preventDefault();
+  });
+  window.addEventListener('resize', () => { if (pyr.actif) taillerPyramide(); });
+
+  // Glisser tourne le bâtiment ; toucher sans glisser ramène l'aide.
+  let glissePyr = null;
+  pyr.toile.addEventListener('pointerdown', ev => {
+    glissePyr = { x: ev.clientX, bouge: 0 };
+    try { pyr.toile.setPointerCapture(ev.pointerId); } catch (e) { /* rien */ }
+    agir();
+  });
+  pyr.toile.addEventListener('pointermove', ev => {
+    if (!glissePyr) return;
+    const dx = ev.clientX - glissePyr.x;
+    glissePyr.x = ev.clientX;
+    glissePyr.bouge += Math.abs(dx);
+    cam.cap -= dx * 0.0085;
+    cam.capVise = cam.cap;
+    agir();
+  });
+  pyr.toile.addEventListener('pointerup', () => {
+    if (glissePyr && glissePyr.bouge < 6) montrerAidePyramide();
+    glissePyr = null;
+  });
+  pyr.toile.addEventListener('pointercancel', () => { glissePyr = null; });
+
+  /* ======================================================================
+   * 8. LA BOUCLE — environ 60 images par seconde
    * ====================================================================== */
 
   function redimensionner() {
@@ -1823,9 +2028,13 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
     precedente = maintenant;
     const t = maintenant / 1000;
     mettreAJour(dt, t, maintenant);
-    dessiner(t);
-    survoler();
-    majHud();
+    if (pyr.actif) {
+      dessinerPyramide(t);
+    } else {
+      dessiner(t);
+      survoler();
+      majHud();
+    }
     requestAnimationFrame(boucle);
   }
 

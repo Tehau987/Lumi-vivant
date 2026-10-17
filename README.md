@@ -127,5 +127,8 @@ même hors ligne. Avec le capteur PC lancé, elle est aussi sur
   centre et nef, Pae miti côté mer) ; **Vue éclatée** sépare les étages.
 - **Trouver un service** (en haut) allume l'étage d'un service : tape « urgences »,
   « labo », « parking »… ; **Visite guidée** passe tout seul d'un niveau à l'autre.
+- **Pyramide** affiche quatre vues pour une petite pyramide transparente posée, pointe
+  en bas, au centre d'un téléphone ou d'une tablette : le bâtiment flotte au milieu,
+  comme un vrai hologramme (gabarit maison : 6 cm en bas, 1 cm en haut, 3,5 cm de haut).
 - C'est un schéma non officiel, fait d'après des documents publics : pour corriger un
   service, modifie le tableau `SERVICES` en haut du script de la page.
