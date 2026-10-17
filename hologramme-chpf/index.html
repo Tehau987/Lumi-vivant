@@ -98,6 +98,13 @@ h1 { margin: 2px 0 0; font: 600 clamp(26px, 3.4vw, 36px)/1.05 var(--f-titre); le
   font: 600 12px/1.3 var(--f-mono); white-space: nowrap; pointer-events: none; transform: translate(14px, -50%);
 }
 .bulle.gauche { transform: translate(calc(-100% - 14px), -50%); }
+.bandeau {
+  position: absolute; top: 14px; right: 18px; max-width: min(60%, 340px); margin: 0; padding: 8px 12px;
+  border: 1px solid var(--trait); border-left: 3px solid var(--c, var(--faisceau)); border-radius: 3px;
+  background: color-mix(in srgb, var(--nuit) 82%, transparent); text-align: left; pointer-events: none;
+}
+.bandeau strong { display: block; font: 600 15px/1.25 var(--f-titre); }
+.bandeau small { display: block; color: var(--texte-doux); font: 11px/1.4 var(--f-mono); letter-spacing: .06em; text-transform: uppercase; }
 
 .barre {
   display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px;
@@ -111,7 +118,8 @@ h1 { margin: 2px 0 0; font: 600 clamp(26px, 3.4vw, 36px)/1.05 var(--f-titre); le
 .bouton:hover { border-color: var(--faisceau); }
 .bouton[aria-pressed="true"] { border-color: var(--faisceau); background: var(--faisceau); color: var(--nuit); }
 .bouton .court { display: none; }
-.plein { width: 100%; }
+.rangee { display: flex; flex-wrap: wrap; gap: 6px; }
+.rangee .bouton { flex: 1 1 9rem; }
 
 /* ---------- Pupitre ---------- */
 .pupitre { display: flex; flex-direction: column; gap: 12px; min-height: 0; overflow-y: auto; }
@@ -121,6 +129,32 @@ h1 { margin: 2px 0 0; font: 600 clamp(26px, 3.4vw, 36px)/1.05 var(--f-titre); le
   font: 600 11px/1.3 var(--f-mono); letter-spacing: .14em; text-transform: uppercase;
 }
 .bloc p { margin: 0 0 10px; }
+
+/* Trouver un service : un champ dans l'en-tête, et ses résultats par-dessus la scène. */
+.outils { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px 14px; }
+.recherche { position: relative; width: 320px; max-width: 100%; }
+.champ {
+  width: 100%; min-height: 44px; padding: 0 12px; border: 1px solid var(--trait); border-radius: 3px;
+  background: var(--panneau); color: var(--texte); font: inherit; -webkit-appearance: none; appearance: none;
+}
+.champ::placeholder { color: var(--texte-doux); opacity: 1; }
+.champ:focus-visible { outline-offset: 1px; }
+.deroulant {
+  position: absolute; z-index: 5; top: calc(100% + 6px); left: 0; right: 0; padding: 10px;
+  border: 1px solid var(--trait); border-radius: 6px; background: var(--panneau);
+  box-shadow: 0 14px 36px color-mix(in srgb, var(--nuit) 85%, transparent);
+}
+.etat-recherche { margin: 0; }
+.resultats:empty { display: none; }
+.resultats { display: flex; flex-direction: column; gap: 4px; margin: 8px 0 0; padding: 0; list-style: none; }
+.resultat {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; min-height: 44px;
+  padding: 6px 10px; border: 1px solid var(--trait); border-left: 3px solid var(--c); border-radius: 3px;
+  background: none; text-align: left;
+}
+.resultat:hover { border-color: var(--faisceau); border-left-color: var(--c); }
+.resultat strong { font-weight: 600; }
+.resultat small { color: var(--texte-doux); font: 11px/1.4 var(--f-mono); letter-spacing: .04em; text-transform: uppercase; }
 
 /* Les niveaux se choisissent comme dans un ascenseur. */
 .ascenseur { display: flex; flex-direction: column; gap: 4px; margin: 0 0 10px; padding: 0; list-style: none; }
@@ -183,8 +217,17 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
 .sources { margin: 8px 0 0; padding-left: 18px; color: var(--texte-doux); font-size: 13px; }
 .sources li + li { margin-top: 6px; }
 
+/* À la souris, le panneau d'ascenseur peut être plus serré, pour laisser voir la fiche. */
+@media (pointer: fine) and (min-width: 901px) {
+  .ascenseur { gap: 2px; }
+  .etage { grid-template-columns: 36px minmax(0, 1fr); min-height: 40px; border-radius: 20px 4px 4px 20px; }
+  .cabine { width: 36px; height: 36px; font-size: 14px; }
+  .secteur { min-height: 56px; }
+}
 @media (max-width: 900px) {
   .page { height: auto; min-height: 0; grid-template-rows: auto auto; }
+  .outils { width: 100%; justify-content: flex-start; }
+  .recherche { flex: 1 1 auto; width: auto; min-width: 0; }
   .salle { grid-template-columns: minmax(0, 1fr); }
   .scene { height: clamp(400px, 72vh, 640px); height: clamp(400px, 72svh, 640px); }
   .pupitre { overflow: visible; }
@@ -211,7 +254,18 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
       <p class="surtitre">CHPF · Hôpital du Taaone · Pirae, Tahiti</p>
       <h1>Hologramme du bâtiment</h1>
     </div>
-    <p class="badge">Schéma non officiel</p>
+    <div class="outils">
+      <div class="recherche" id="zone-recherche">
+        <label class="vh" for="recherche">Trouver un service</label>
+        <input class="champ" id="recherche" type="search" autocomplete="off" spellcheck="false"
+          placeholder="Trouver un service : urgences, labo…" aria-controls="deroulant" aria-expanded="false">
+        <div class="deroulant" id="deroulant" hidden>
+          <p class="note etat-recherche" id="recherche-etat" aria-live="polite"></p>
+          <ul class="resultats" id="resultats"></ul>
+        </div>
+      </div>
+      <p class="badge">Schéma non officiel</p>
+    </div>
   </header>
 
   <main class="salle">
@@ -231,6 +285,7 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
         </div>
         <p class="geste" id="geste" aria-hidden="true">Glisser pour tourner · molette pour zoomer · cliquer sur un étage pour le choisir</p>
         <div class="bulle" id="bulle" hidden></div>
+        <p class="bandeau" id="bandeau" aria-hidden="true" hidden></p>
       </div>
       <div class="barre">
         <div class="groupe" role="group" aria-label="Point de vue">
@@ -252,7 +307,10 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
       <section class="bloc" aria-labelledby="t-niveaux">
         <h2 id="t-niveaux">Niveaux</h2>
         <ol class="ascenseur" id="ascenseur"></ol>
-        <button type="button" class="bouton plein" id="b-tout">Tout le bâtiment</button>
+        <div class="rangee">
+          <button type="button" class="bouton" id="b-tout">Tout le bâtiment</button>
+          <button type="button" class="bouton" id="b-visite" aria-pressed="false">Visite guidée</button>
+        </div>
       </section>
 
       <section class="bloc" aria-labelledby="t-secteurs">
@@ -329,44 +387,45 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
       resume: 'Le niveau −1, en sous-sol, accueille le parking. Ses piliers sont peints en bleu, beige ou vert selon le secteur, pour se repérer.' }
   ];
 
+  // mots : d'autres mots qui mènent au service quand on le cherche.
   const SERVICES = [
     { k: -1, s: null, nom: 'Parking', detail: 'Piliers aux couleurs des secteurs : bleu, beige, vert.',
-      source: 'CHPF, Plan et accès' },
+      mots: 'voiture stationnement garer sous-sol', source: 'CHPF, Plan et accès' },
     { k: 0, s: 'mer', nom: "Service d'accueil des urgences (SAU)",
       detail: "Ouvert jour et nuit ; deux infirmiers d'accueil et d'orientation trient les arrivées.",
-      source: 'CHPF, présentation Urgences-SAMU (2020)' },
+      mots: 'urgence accident blessure', source: 'CHPF, présentation Urgences-SAMU (2020)' },
     { k: 0, s: 'mer', nom: 'SAMU', detail: "Il centralise les appels d'urgence de toute la Polynésie.",
-      source: 'CHPF (2020) ; Le Quotidien du Médecin (2010)' },
+      mots: '15 secours ambulance', source: 'CHPF (2020) ; Le Quotidien du Médecin (2010)' },
     { k: 0, s: 'mer', nom: 'UHCD', detail: "Unité d'hospitalisation de courte durée : 12 lits.",
-      source: 'CHPF, présentation Urgences-SAMU (2020)' },
+      mots: 'urgences observation', source: 'CHPF, présentation Urgences-SAMU (2020)' },
     { k: 0, s: null, nom: 'Imagerie médicale', detail: 'Radiologie ; sa caisse est au niveau 0.',
-      source: 'CHPF, Tarifs et paiements' },
+      mots: 'radio scanner IRM échographie', source: 'CHPF, Tarifs et paiements' },
     { k: 1, s: 'centre', nom: "Hall d'entrée, dans la nef", detail: 'Accueil des admissions et caisse centrale.',
-      source: 'CHPF, Formalités administratives ; Tarifs et paiements' },
+      mots: 'entrée accueil admission caisse payer', source: 'CHPF, Formalités administratives ; Tarifs et paiements' },
     { k: 1, s: 'mer', nom: 'Accueil des consultations', detail: null,
-      source: 'CHPF, annuaire des consultations (2019)' },
+      mots: 'rendez-vous rdv', source: 'CHPF, annuaire des consultations (2019)' },
     { k: 1, s: 'mer', nom: 'Dépose minute', detail: "Pour déposer un patient au plus près de l'entrée.",
-      source: "CHPF, livret d'accueil" },
+      mots: 'voiture taxi déposer', source: "CHPF, livret d'accueil" },
     { k: 1, s: 'mer', nom: 'Consultations', detail: 'Anesthésie, chirurgie vasculaire, gynécologie.',
-      source: 'Annuaires des consultations' },
+      mots: 'rendez-vous rdv anesthésiste gynéco', source: 'Annuaires des consultations' },
     { k: 1, s: null, nom: 'Consultations de neurochirurgie', detail: null,
-      source: 'CHPF, service de neurochirurgie (2018)' },
+      mots: 'rendez-vous rdv', source: 'CHPF, service de neurochirurgie (2018)' },
     { k: 2, s: null, nom: 'Laboratoire', detail: 'La caisse du laboratoire est au niveau 2.',
-      source: 'CHPF, Tarifs et paiements' },
+      mots: 'labo prise de sang analyses', source: 'CHPF, Tarifs et paiements' },
     { k: 3, s: 'montagne', nom: 'Cardiologie, pneumologie, neurologie, hématologie', detail: "Services d'hospitalisation.",
-      source: 'CHPF, plan par niveau (2018)' },
+      mots: 'cœur poumons cerveau sang hospitalisation', source: 'CHPF, plan par niveau (2018)' },
     { k: 3, s: 'montagne', nom: 'Centre de la douleur', detail: 'Consultations.',
-      source: 'Annuaires des consultations' },
+      mots: 'douleurs rendez-vous', source: 'Annuaires des consultations' },
     { k: 3, s: 'mer', nom: 'Direction et administration', detail: null,
-      source: 'CHPF, annuaire (2019)' },
+      mots: 'directeur bureaux', source: 'CHPF, annuaire (2019)' },
     { k: 3, s: null, nom: 'Neurochirurgie', detail: 'Hospitalisation : 8 lits en chambres individuelles.',
-      source: 'CHPF, service de neurochirurgie (2018)' },
+      mots: 'cerveau colonne hospitalisation', source: 'CHPF, service de neurochirurgie (2018)' },
     { k: 4, s: 'mer', nom: 'Hélistation',
       detail: "Réservée aux transports sanitaires et aux vols médicaux d'urgence ; Taravao n'est qu'à 18 minutes de vol. Sa place exacte sur le toit est schématique.",
-      source: "SIA, fiche de l'hélistation ; Direction de la santé" },
+      mots: 'hélicoptère évasan évacuation', source: "SIA, fiche de l'hélistation ; Direction de la santé" },
     { k: 4, s: 'centre', nom: 'Verrière de la nef',
       detail: 'Le hall monumental de béton, de verre et de métal. La forme de sa couverture est schématique.',
-      source: 'Tahiti Infos (2013) ; Arcora' }
+      mots: 'toit vitré', source: 'Tahiti Infos (2013) ; Arcora' }
   ];
 
   const REPERES = [
@@ -375,7 +434,8 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
     { valeur: '490 lits', texte: 'Installés en 2019, dont 66 en psychiatrie.', source: "CHPF, rapport d'activité 2019" },
     { valeur: '8 salles', texte: 'Au bloc opératoire central, avec 24 lits de réanimation (2019).', source: "CHPF, rapport d'activité 2019" },
     { valeur: '2010', texte: 'Le déménagement du Mamao vers le Taaone, du 16 octobre au 11 novembre.', source: "CHPF, historique et livret d'accueil" },
-    { valeur: '900 m', texte: "La profondeur où le SWAC puise l'eau de mer, vers 5 °C, pour climatiser l'hôpital : 3,8 km de canalisation, 6 MW de froid, depuis juillet 2022.", source: 'Service des énergies de la Polynésie française' }
+    { valeur: '900 m', texte: "La profondeur où le SWAC puise l'eau de mer, vers 5 °C, pour climatiser l'hôpital : 3,8 km de canalisation, 6 MW de froid, depuis juillet 2022.", source: 'Service des énergies de la Polynésie française' },
+    { valeur: '4 000 m²', texte: "Le nouveau pôle de santé mentale, relié au CHPF et à l'ancien hôpital Jean-Prince. Il n'est pas dessiné ici.", source: 'Outre-mer La 1ère' }
   ];
 
   const SOURCES = [
@@ -387,7 +447,8 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
     'Service des énergies de la Polynésie française, fiche du SWAC du CHPF (2022).',
     "Service de l'information aéronautique, fiche de l'hélistation du CHPF ; Direction de la santé, hélistation de Taravao.",
     'Tahiti Infos (2013) et Arcora : la nef, hall monumental de béton, de verre et de métal.',
-    'Le Quotidien du Médecin (2010) : ouverture, coût, centralisation des appels d\'urgence.'
+    'Le Quotidien du Médecin (2010) : ouverture, coût, centralisation des appels d\'urgence.',
+    'Outre-mer La 1ère, « Pôle de santé mentale : bientôt la fin du chantier » : surface et liaisons du pôle.'
   ];
 
   const PRESENTATION = "Le bâtiment principal du CHPF s'étire tout en longueur, comme une pirogue. Ses deux extrémités s'appellent Pae miti, côté mer, et Pae mou'a, côté montagne ; au centre, la nef vitrée sert de hall d'entrée. Un code couleur aide à s'orienter : bleu côté mer, beige au centre, vert côté montagne. Le bâtiment compte 5 niveaux, du −1 au 3, et une hélistation sur le toit.";
@@ -1194,7 +1255,14 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
     return NIVEAUX.find(n => n.k === k).nom;
   }
 
+  // Un choix fait par la personne arrête la visite guidée.
   function choisir(k, s) {
+    arreterVisite();
+    selectionner(k, s);
+  }
+
+  function selectionner(k, s) {
+    cacherBandeau();
     etat.sel.k = k;
     etat.sel.s = s;
     document.querySelectorAll('.etage').forEach(b => {
@@ -1464,6 +1532,7 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
     $('b-rotation').setAttribute('aria-pressed', String(etat.rotation));
     $('b-eclate').setAttribute('aria-pressed', String(etat.eclate));
     $('b-couleurs').setAttribute('aria-pressed', String(etat.couleurs));
+    $('b-visite').setAttribute('aria-pressed', String(Boolean(visite.minuteur)));
   }
 
   function basculer(cle) {
@@ -1497,6 +1566,170 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
     cam.reculVise = ecran.reculDefaut;
   });
   $('b-tout').addEventListener('click', () => choisir(null, null));
+
+  /* ---------- La visite guidée : chaque niveau, du parking au toit ---------- */
+
+  const PARCOURS = [-1, 0, 1, 2, 3, TOIT, null];
+  const visite = { minuteur: null, etape: 0 };
+
+  function etapeVisite() {
+    selectionner(PARCOURS[visite.etape % PARCOURS.length], null);
+    visite.etape++;
+  }
+
+  function arreterVisite() {
+    if (!visite.minuteur) return;
+    clearInterval(visite.minuteur);
+    visite.minuteur = null;
+    majBoutons();
+  }
+
+  $('b-visite').addEventListener('click', () => {
+    if (visite.minuteur) {
+      arreterVisite();
+      return;
+    }
+    visite.etape = 0;
+    etapeVisite();
+    visite.minuteur = setInterval(etapeVisite, 6000);
+    majBoutons();
+  });
+
+  /* ---------- Trouver un service ---------- */
+
+  // Sans majuscules ni accents, pour que « hélico » trouve « hélicoptère ».
+  function normaliser(texte) {
+    return texte.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/œ/g, 'oe');
+  }
+
+  const INDEX = SERVICES.map(v => ({
+    service: v,
+    nom: normaliser(v.nom),
+    tout: normaliser([v.nom, v.detail || '', v.mots || ''].join(' '))
+  }));
+
+  // Tous les mots tapés doivent se retrouver ; ceux qui sont dans le nom passent devant.
+  function chercher(texte) {
+    const mots = normaliser(texte).split(/[\s,;.'’-]+/).filter(m => m.length > 1);
+    if (!mots.length) return [];
+    const dansNom = e => mots.some(m => e.nom.includes(m));
+    return INDEX.filter(e => mots.every(m => e.tout.includes(m)))
+      .sort((a, b) => Number(dansNom(b)) - Number(dansNom(a)))
+      .map(e => e.service);
+  }
+
+  function ouEst(v) {
+    const sec = v.s === null ? null : SECTEURS.find(x => x.id === v.s);
+    return nomNiveau(v.k) + ' · ' + (sec ? sec.nom + ', ' + sec.sens : 'côté non précisé');
+  }
+
+  const champ = $('recherche');
+  const deroulant = $('deroulant');
+  const zoneRecherche = $('zone-recherche');
+
+  function ouvrirResultats(ouvert) {
+    deroulant.hidden = !ouvert;
+    champ.setAttribute('aria-expanded', String(ouvert));
+  }
+
+  function afficherResultats() {
+    const texte = champ.value;
+    const liste = $('resultats');
+    const message = $('recherche-etat');
+    vider(liste);
+    if (!texte.trim()) {
+      message.textContent = '';
+      ouvrirResultats(false);
+      return;
+    }
+    ouvrirResultats(true);
+    const trouves = chercher(texte);
+    if (!trouves.length) message.textContent = "Aucun service trouvé. Les documents publics ne localisent pas tous les services.";
+    else if (trouves.length === 1) message.textContent = '1 service trouvé.';
+    else message.textContent = trouves.length + ' services trouvés.' + (trouves.length > 6 ? ' Voici les 6 premiers.' : '');
+    trouves.slice(0, 6).forEach(v => {
+      const sec = v.s === null ? null : SECTEURS.find(x => x.id === v.s);
+      const bouton = el('button', { type: 'button', class: 'resultat',
+        style: '--c: ' + couleurCss(sec ? sec.couleur : 'faisceau') }, [
+        el('strong', { text: v.nom }),
+        el('small', { text: ouEst(v) })
+      ]);
+      bouton.addEventListener('click', ev => allerAuService(v, ev.detail === 0));
+      liste.appendChild(el('li', {}, bouton));
+    });
+  }
+
+  // Le service choisi s'allume dans l'hologramme et un bandeau dit où il se trouve.
+  // Au clavier, on passe ensuite sur l'hologramme (la liste vient de se fermer).
+  function allerAuService(v, auClavier) {
+    choisir(v.k, v.s);
+    ouvrirResultats(false);
+    montrerBandeau(v);
+    if (auClavier) toile.focus({ preventScroll: true });
+    const scene = document.querySelector('.scene');
+    const r = scene.getBoundingClientRect();
+    if (r.top < -r.height / 2 || r.top > window.innerHeight * 0.6) {
+      scene.scrollIntoView({ behavior: calme ? 'auto' : 'smooth', block: 'start' });
+    }
+  }
+
+  let minuteurBandeau = null;
+  function montrerBandeau(v) {
+    const bandeau = $('bandeau');
+    const sec = v.s === null ? null : SECTEURS.find(x => x.id === v.s);
+    vider(bandeau);
+    bandeau.style.setProperty('--c', couleurCss(sec ? sec.couleur : 'faisceau'));
+    bandeau.appendChild(el('strong', { text: v.nom }));
+    bandeau.appendChild(el('small', { text: ouEst(v) }));
+    bandeau.hidden = false;
+    clearTimeout(minuteurBandeau);
+    minuteurBandeau = setTimeout(cacherBandeau, 7000);
+  }
+
+  function cacherBandeau() {
+    clearTimeout(minuteurBandeau);
+    $('bandeau').hidden = true;
+  }
+
+  function boutonsResultats() {
+    return Array.from(deroulant.querySelectorAll('.resultat'));
+  }
+
+  champ.addEventListener('input', afficherResultats);
+  champ.addEventListener('focus', () => { if (champ.value.trim()) afficherResultats(); });
+  champ.addEventListener('keydown', ev => {
+    const boutons = boutonsResultats();
+    if (ev.key === 'Enter' && boutons.length) {
+      ev.preventDefault();
+      boutons[0].click();
+    } else if (ev.key === 'ArrowDown' && boutons.length) {
+      ev.preventDefault();
+      boutons[0].focus();
+    } else if (ev.key === 'Escape' && !deroulant.hidden) {
+      ev.preventDefault();
+      ouvrirResultats(false);
+    }
+  });
+  // Dans la liste : flèches pour passer d'un résultat à l'autre, Échap pour revenir au champ.
+  deroulant.addEventListener('keydown', ev => {
+    const boutons = boutonsResultats();
+    const i = boutons.indexOf(document.activeElement);
+    if (i < 0) return;
+    if (ev.key === 'ArrowDown' && i < boutons.length - 1) boutons[i + 1].focus();
+    else if (ev.key === 'ArrowUp') (i > 0 ? boutons[i - 1] : champ).focus();
+    else if (ev.key === 'Escape') { ouvrirResultats(false); champ.focus(); }
+    else return;
+    ev.preventDefault();
+  });
+  // La liste se ferme quand on touche ou qu'on passe ailleurs.
+  document.addEventListener('pointerdown', ev => {
+    if (!zoneRecherche.contains(ev.target)) ouvrirResultats(false);
+  });
+  zoneRecherche.addEventListener('focusout', () => {
+    setTimeout(() => {
+      if (!zoneRecherche.contains(document.activeElement)) ouvrirResultats(false);
+    }, 0);
+  });
 
   if (window.matchMedia('(pointer: coarse)').matches) {
     $('geste').textContent = 'Glisser pour tourner · pincer pour zoomer · toucher un étage pour le choisir';
