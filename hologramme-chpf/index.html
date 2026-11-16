@@ -56,6 +56,10 @@ h1 { margin: 2px 0 0; font: 600 clamp(26px, 3.4vw, 36px)/1.05 var(--f-titre); le
   margin: 0; padding: 5px 10px; border: 1px solid var(--balise); border-radius: 3px; color: var(--balise);
   font: 600 11px/1.3 var(--f-mono); letter-spacing: .14em; text-transform: uppercase;
 }
+.alerte {
+  flex: 1 1 100%; margin: 0; padding: 8px 12px; border: 1px solid var(--balise); border-radius: 3px;
+  color: var(--balise); font-size: 13px;
+}
 .salle { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; min-height: 0; }
 
 /* ---------- Scène ---------- */
@@ -87,6 +91,16 @@ h1 { margin: 2px 0 0; font: 600 clamp(26px, 3.4vw, 36px)/1.05 var(--f-titre); le
   font-variant-numeric: tabular-nums; pointer-events: none;
 }
 .hud b { color: var(--faisceau); font-weight: 600; }
+/* La boussole : la flèche montre où se trouve le côté mer à l'écran. */
+.boussole { color: var(--mer); }
+.hud .fleche {
+  display: inline-block; position: relative; width: 18px; height: 2px; margin: 0 8px 0 6px;
+  background: var(--mer); vertical-align: middle;
+}
+.hud .fleche::after {
+  content: ""; position: absolute; top: -4px; right: -6px;
+  border-top: 5px solid transparent; border-bottom: 5px solid transparent; border-left: 8px solid var(--mer);
+}
 .geste {
   position: absolute; left: 50%; bottom: 14px; width: max-content; max-width: calc(100% - 48px); margin: 0;
   transform: translateX(-50%); color: var(--texte-doux); font: 11px/1.4 var(--f-mono); letter-spacing: .04em;
@@ -280,7 +294,7 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
       <div class="recherche" id="zone-recherche">
         <label class="vh" for="recherche">Trouver un service</label>
         <input class="champ" id="recherche" type="search" autocomplete="off" spellcheck="false"
-          placeholder="Trouver un service : urgences, labo…" aria-controls="deroulant" aria-expanded="false">
+          placeholder="Trouver un service : urgences, labo…" aria-controls="deroulant" aria-describedby="recherche-etat">
         <div class="deroulant" id="deroulant" hidden>
           <p class="note etat-recherche" id="recherche-etat" aria-live="polite"></p>
           <ul class="resultats" id="resultats"></ul>
@@ -288,6 +302,7 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
       </div>
       <p class="badge">Schéma non officiel</p>
     </div>
+    <p class="alerte" id="alerte-donnees" role="alert" hidden></p>
   </header>
 
   <main class="salle">
@@ -300,7 +315,7 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
         <div class="trame" aria-hidden="true"></div>
         <div class="coins" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
         <div class="hud" aria-hidden="true">
-          <span>CAP <b id="hud-cap">000°</b></span>
+          <span class="boussole">MER <b class="fleche" id="hud-mer"></b></span>
           <span>INCL <b id="hud-incl">00°</b></span>
           <span>ZOOM <b id="hud-zoom">×1,0</b></span>
           <span>VUE <b id="hud-sel">TOUT</b></span>
@@ -484,6 +499,29 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
     'Le Quotidien du Médecin (2010) : ouverture, coût, centralisation des appels d\'urgence.',
     'Outre-mer La 1ère, « Pôle de santé mentale : bientôt la fin du chantier » : surface et liaisons du pôle.'
   ];
+
+  // Pour qui modifie le tableau SERVICES : une faute de niveau ou de secteur est signalée
+  // en haut de la page (et dans la console), et la ligne fautive est mise de côté.
+  (function verifierDonnees() {
+    const niveaux = NIVEAUX.map(n => n.k);
+    const secteurs = SECTEURS.map(x => x.id);
+    const fautes = [];
+    for (let i = SERVICES.length - 1; i >= 0; i--) {
+      const v = SERVICES[i];
+      const nom = v.nom ? '« ' + v.nom + " »" : 'le service n° ' + (i + 1);
+      const avant = fautes.length;
+      if (!v.nom) fautes.push('le service n° ' + (i + 1) + " n'a pas de nom");
+      if (!niveaux.includes(v.k)) fautes.push(nom + ' : niveau « ' + v.k + ' » inconnu (−1, 0, 1, 2, 3 ou 4 pour le toit)');
+      if (v.s !== null && !secteurs.includes(v.s)) fautes.push(nom + " : secteur « " + v.s + " » inconnu ('mer', 'centre', 'montagne' ou null)");
+      if (!v.source) fautes.push(nom + ' : il manque la source');
+      if (fautes.length > avant) SERVICES.splice(i, 1);
+    }
+    if (!fautes.length) return;
+    console.warn('Hologramme du CHPF, données à corriger :\n- ' + fautes.join('\n- '));
+    const alerte = $('alerte-donnees');
+    alerte.textContent = 'Données à corriger dans le tableau SERVICES : ' + fautes.join(' ; ') + '. Ces lignes ne sont pas affichées.';
+    alerte.hidden = false;
+  })();
 
   const PRESENTATION = "Le bâtiment principal du CHPF s'étire tout en longueur, comme une pirogue. Ses deux extrémités s'appellent Pae miti, côté mer, et Pae mou'a, côté montagne ; au centre, la nef vitrée sert de hall d'entrée. Un code couleur aide à s'orienter : bleu côté mer, beige au centre, vert côté montagne. Le bâtiment compte 5 niveaux, du −1 au 3, et une hélistation sur le toit.";
 
@@ -784,7 +822,8 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
     intro: 0,
     apparition: 0,
     prochainGlitch: 6,
-    glitchFin: 0
+    glitchFin: 0,
+    phaseRotor: 0
   };
 
   const VUES = {
@@ -859,7 +898,7 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
 
   function lirePalette() {
     const style = getComputedStyle(document.documentElement);
-    ['faisceau', 'mer', 'nef', 'montagne', 'balise', 'texte'].forEach(nom => {
+    ['faisceau', 'mer', 'nef', 'montagne', 'balise', 'texte', 'nuit'].forEach(nom => {
       PALETTE[nom] = enRvb(style.getPropertyValue('--' + nom).trim());
     });
     policeTitre = style.getPropertyValue('--f-titre').trim() || policeTitre;
@@ -873,9 +912,10 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
     return Number.isNaN(n) ? [127, 243, 255] : [(n >> 16) & 255, (n >> 8) & 255, n & 255];
   }
 
-  // Sans le code couleur, tout prend le cyan du faisceau.
+  // Sans le code couleur, les couleurs des secteurs prennent le cyan du faisceau.
+  const COULEURS_DU_CODE = ['mer', 'nef', 'montagne', 'balise'];
   function teinte(nom, a) {
-    const c = PALETTE[etat.couleurs ? nom : 'faisceau'] || PALETTE.faisceau;
+    const c = PALETTE[!etat.couleurs && COULEURS_DU_CODE.includes(nom) ? 'faisceau' : nom] || PALETTE.faisceau;
     return 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + borne(a, 0, 1).toFixed(3) + ')';
   }
 
@@ -924,13 +964,17 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
     remplissages(hIntro);
     traits(t, hIntro, complet);
     feuxHelistation(t, hIntro);
+    if (complet) helicoptere(t, hIntro);
     if (etat.intro < 1) {
       if (hIntro <= TOIT * H + 1.1) coupe(hIntro, 0.9, 0.08);
     } else {
       balayage(t);
     }
     ctx.globalCompositeOperation = 'source-over';
-    if (complet && etat.apparition > 0) etiquettes();
+    if (complet && etat.apparition > 0) {
+      etiquettes();
+      etiquettesServices();
+    }
   }
 
   function dessiner(t) {
@@ -1110,6 +1154,104 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
     });
   }
 
+  /* ---------- L'hélicoptère sanitaire : il arrive du large, se pose, puis repart ---------- */
+
+  const CYCLE_HELICO = 60;   // secondes ; il est en l'air ou posé pendant 38 s
+
+  function adoucir(u) {
+    const v = borne(u, 0, 1);
+    return v * v * (3 - 2 * v);
+  }
+
+  // Où il est à l'instant t : position, direction du nez (angle dans le plan du sol), régime du rotor.
+  function etatHelico(t) {
+    const u = t % CYCLE_HELICO;
+    const piste = { x: 95, y: TOIT * H + 1.1 + 1.6 + decalage(TOIT), z: 0 };
+    const vol = 12;   // hauteur du vol stationnaire au-dessus de la piste
+    const depart = Math.atan2(-90, 230);
+    if (u < 10) {          // approche depuis la mer, en descendant
+      const p = adoucir(u / 10);
+      return { x: piste.x + 210 * (1 - p), y: piste.y + vol + 55 * (1 - p), z: 70 * (1 - p), nez: Math.PI + 0.32 * (1 - p), rotor: 1 };
+    }
+    if (u < 14) {          // descente sur la piste
+      const p = adoucir((u - 10) / 4);
+      return { x: piste.x, y: piste.y + vol * (1 - p), z: 0, nez: Math.PI, rotor: 1 };
+    }
+    if (u < 27) {          // posé : le rotor ralentit, puis reprend
+      const p = (u - 14) / 13;
+      return { x: piste.x, y: piste.y, z: 0, nez: Math.PI, rotor: 0.3 + 0.7 * Math.abs(2 * p - 1) };
+    }
+    if (u < 31) {          // décollage, en pivotant vers le large
+      const p = adoucir((u - 27) / 4);
+      return { x: piste.x, y: piste.y + vol * p, z: 0, nez: Math.PI + (Math.PI + depart) * p, rotor: 1 };
+    }
+    if (u < 38) {          // départ
+      const q = Math.pow((u - 31) / 7, 2);
+      return { x: piste.x + 230 * q, y: piste.y + vol + 60 * q, z: -90 * q, nez: depart, rotor: 1 };
+    }
+    return null;
+  }
+
+  // Le dessin, en coordonnées propres à l'appareil : u vers l'avant, y vers le haut, w vers la droite.
+  const COQUE = [[3.2, 0], [2.4, 1.1], [-1, 1.2], [-2.4, 0.6], [-2.4, -0.6], [-1, -1.2], [2.4, -1.1]];
+
+  function helicoptere(t, hIntro) {
+    if (calme || hIntro !== Infinity) return;
+    const h = etatHelico(t);
+    if (!h) return;
+    const a = cellules.get(TOIT + '|mer').vis * etat.scintil;
+    if (a < 0.05) return;
+    const ctx = R.ctx;
+    const c = Math.cos(h.nez);
+    const s = Math.sin(h.nez);
+    let ok = true;
+    const point = (u, y, w) => {
+      if (!projeter(h.x + u * c - w * s, h.y + y, h.z + u * s + w * c, P1)) ok = false;
+      return [P1.x, P1.y];
+    };
+    const segment = (p, q) => {
+      ctx.moveTo(p[0], p[1]);
+      ctx.lineTo(q[0], q[1]);
+    };
+    ctx.beginPath();
+    const bas = COQUE.map(p => point(p[0], 0.4, p[1]));
+    const haut = COQUE.map(p => point(p[0] * 0.85, 2.2, p[1] * 0.8));
+    for (let i = 0; i < COQUE.length; i++) {
+      const j = (i + 1) % COQUE.length;
+      segment(bas[i], bas[j]);
+      segment(haut[i], haut[j]);
+      segment(bas[i], haut[i]);
+    }
+    segment(point(-2.2, 1.6, 0), point(-9, 2, 0));                 // poutre de queue
+    segment(point(-9, 2, 0), point(-9.7, 3.5, 0));                 // dérive
+    segment(point(-8.1, 2, 0), point(-9.7, 3.5, 0));
+    segment(point(0, 2.2, 0), point(0, 2.9, 0));                   // mât
+    [-1.3, 1.3].forEach(w => {                                     // patins
+      segment(point(-2.2, 0, w), point(2.6, 0, w));
+      segment(point(-1, 0, w), point(-1, 0.4, w * 0.75));
+      segment(point(1.2, 0, w), point(1.2, 0.4, w * 0.75));
+    });
+    const phi = etat.phaseRotor;
+    for (let i = 0; i < 2; i++) {                                  // rotor principal : deux pales
+      const b = phi + i * Math.PI / 2;
+      segment(point(Math.cos(b) * 6.5, 2.9, Math.sin(b) * 6.5), point(-Math.cos(b) * 6.5, 2.9, -Math.sin(b) * 6.5));
+      const r = phi * 1.7 + i * Math.PI / 2;                       // rotor de queue
+      segment(point(-9.4 + Math.cos(r), 2.5 + Math.sin(r), 0.35), point(-9.4 - Math.cos(r), 2.5 - Math.sin(r), 0.35));
+    }
+    if (!ok) return;
+    ctx.lineWidth = 1.2 * R.dpr;
+    ctx.strokeStyle = teinte('balise', a * 0.9);
+    ctx.stroke();
+    // Feu anticollision qui clignote sous la poutre.
+    if (Math.sin(t * 6) > 0.6) {
+      const f = point(-4, 1.2, 0);
+      ctx.fillStyle = teinte('balise', a);
+      ctx.beginPath();
+      ctx.arc(f[0], f[1], 2.2 * R.dpr, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
   // Un faisceau horizontal balaie le bâtiment de bas en haut, toutes les 8 secondes.
   function balayage(t) {
     if (calme) return;
@@ -1143,7 +1285,7 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
     { texte: 'La nef', x: 0, y: TOIT * H + 8.1, z: 0, e: TOIT, couleur: 'nef', sens: 'haut', cellule: TOIT + '|centre' },
     { texte: 'Hélistation', x: 95, y: TOIT * H + 2.7, z: 0, e: TOIT, couleur: 'balise', sens: 'haut', cellule: TOIT + '|mer' },
     { texte: 'Parking', sous: 'niveau −1', x: -BOUT + 6, y: -H / 2, z: 0, e: -1, couleur: 'faisceau', sens: 'dehors-bas',
-      cellule: '-1|montagne', quand: () => etat.sel.k === -1 || etat.explosion > 0.5 || cam.incl < 0.2 },
+      cellule: '-1|montagne', quand: () => etat.sel.k === null && (etat.explosion > 0.5 || cam.incl < 0.2) },
     { texte: 'SWAC', sous: 'eau puisée à 900 m', x: 166, y: -4, z: 12.5, e: FIXE, couleur: 'mer', sens: 'bas' }
   ];
 
@@ -1205,6 +1347,103 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
       }
     }
     numerosEtages(centreX);
+  }
+
+  /* ---------- Les services de l'étage choisi, écrits dans l'hologramme ---------- */
+
+  const MILIEU_SECTEUR = { montagne: -75, centre: 0, mer: 75 };
+
+  // Coupe un texte en lignes qui tiennent dans la largeur donnée (police déjà choisie).
+  function couperLignes(ctx, texte, largeurMax) {
+    const lignes = [];
+    let courante = '';
+    texte.split(' ').forEach(mot => {
+      const essai = courante ? courante + ' ' + mot : mot;
+      if (courante && ctx.measureText(essai).width > largeurMax) {
+        lignes.push(courante);
+        courante = mot;
+      } else {
+        courante = essai;
+      }
+    });
+    if (courante) lignes.push(courante);
+    return lignes;
+  }
+
+  function chevauche(a, b) {
+    return a.x < b.x + b.l && b.x < a.x + a.l && a.y < b.y + b.h && b.y < a.y + a.h;
+  }
+
+  // Un encadré par secteur, au-dessus de l'étage ; les services sans côté connu, en dessous.
+  function etiquettesServices() {
+    const k = etat.sel.k;
+    if (k === null || k === TOIT) return;   // le toit a déjà ses étiquettes
+    const ctx = R.ctx;
+    const dpr = R.dpr;
+    const marge = 10 * dpr;
+    const pad = 7 * dpr;
+    const interligne = 15 * dpr;
+    const largeurMax = Math.min(210 * dpr, R.larg * 0.4);
+    const policeService = '600 ' + Math.round(12 * dpr) + 'px ' + policeTitre;
+    const policeEntete = '500 ' + Math.round(10 * dpr) + 'px ' + policeMono;
+    const groupes = [];
+    SECTEURS.forEach(sec => {
+      if (etat.sel.s && etat.sel.s !== sec.id) return;
+      const items = SERVICES.filter(v => v.k === k && v.s === sec.id);
+      if (items.length) groupes.push({ entete: sec.nom, couleur: sec.couleur, x: MILIEU_SECTEUR[sec.id], cellule: k + '|' + sec.id, items: items, haut: true });
+    });
+    const sansCote = SERVICES.filter(v => v.k === k && v.s === null);
+    if (sansCote.length) groupes.push({ entete: 'Côté non précisé', couleur: 'faisceau', x: 0, cellule: k + '|centre', items: sansCote, haut: false });
+
+    const places = [];
+    groupes.forEach(g => {
+      const a = cellules.get(g.cellule).vis * etat.scintil * etat.apparition;
+      if (a < 0.3 || !projeter(g.x, k * H + H * 0.5 + decalage(k), 0, P1)) return;
+      const ax = P1.x;
+      const ay = P1.y;
+      ctx.font = policeService;
+      const lignes = [];
+      g.items.forEach(v => couperLignes(ctx, v.nom, largeurMax).forEach((texte, i) => lignes.push({ texte: texte, suite: i > 0 })));
+      let l = 0;
+      lignes.forEach(li => { l = Math.max(l, ctx.measureText(li.texte).width + (li.suite ? 8 * dpr : 0)); });
+      ctx.font = policeEntete;
+      l = Math.max(l, ctx.measureText(g.entete.toUpperCase()).width) + pad * 2 + 3 * dpr;
+      const h = pad * 2 + 13 * dpr + lignes.length * interligne;
+      // Placé au-dessus (ou en dessous), décalé s'il en recouvre un autre, toujours dans le cadre.
+      const boite = { x: borne(ax - l * 0.25, marge, R.larg - marge - l), y: g.haut ? ay - 34 * dpr - h : ay + 34 * dpr, l: l, h: h };
+      for (let essai = 0; essai < 8 && places.some(p => chevauche(p, boite)); essai++) {
+        boite.y += (g.haut ? -1 : 1) * (h * 0.5 + 6 * dpr);
+      }
+      boite.y = borne(boite.y, marge, R.haut - marge - h);
+      places.push(boite);
+
+      // Trait de rappel vers l'étage, fond sombre, filet de couleur, puis le texte.
+      ctx.lineWidth = dpr;
+      ctx.strokeStyle = teinte(g.couleur, a * 0.8);
+      ctx.beginPath();
+      ctx.moveTo(ax, ay);
+      ctx.lineTo(borne(ax, boite.x + 6 * dpr, boite.x + l - 6 * dpr), g.haut ? boite.y + h : boite.y);
+      ctx.stroke();
+      ctx.fillStyle = teinte(g.couleur, a);
+      ctx.beginPath();
+      ctx.arc(ax, ay, 2.6 * dpr, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = teinte('nuit', 0.78 * a);
+      ctx.fillRect(boite.x, boite.y, l, h);
+      ctx.fillStyle = teinte(g.couleur, a);
+      ctx.fillRect(boite.x, boite.y, 3 * dpr, h);
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      const xt = boite.x + 3 * dpr + pad;
+      ctx.font = policeEntete;
+      ctx.fillStyle = teinte(g.couleur, a);
+      ctx.fillText(g.entete.toUpperCase(), xt, boite.y + pad + 5 * dpr);
+      ctx.font = policeService;
+      ctx.fillStyle = teinte('texte', a);
+      lignes.forEach((li, i) => {
+        ctx.fillText(li.texte, xt + (li.suite ? 8 * dpr : 0), boite.y + pad + 13 * dpr + interligne * (i + 0.5));
+      });
+    });
   }
 
   // Les numéros d'étage au bout côté montagne, quand ils ont la place d'être lus.
@@ -1309,10 +1548,31 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
     return NIVEAUX.find(n => n.k === k).nom;
   }
 
-  // Un choix fait par la personne arrête la visite guidée.
+  // Un choix fait par la personne arrête la visite guidée et s'inscrit dans l'adresse de la page.
   function choisir(k, s) {
     arreterVisite();
     selectionner(k, s);
+    ecrireLien(k, s);
+  }
+
+  // Lien direct vers un étage : #n0, #n-1, #toit… avec en option -mer, -centre ou -montagne (#n0-mer).
+  function codeLien(k, s) {
+    const n = k === null ? null : (k === TOIT ? 'toit' : 'n' + k);
+    return [n, s].filter(Boolean).join('-');
+  }
+
+  function ecrireLien(k, s) {
+    const code = codeLien(k, s);
+    try {
+      history.replaceState(null, '', code ? '#' + code : location.pathname + location.search);
+    } catch (e) { /* adresse non modifiable ici : sans importance */ }
+  }
+
+  function lireLien() {
+    const m = /^#(toit|n-1|n[0-3])?(?:-?(mer|centre|montagne))?$/.exec(location.hash);
+    if (!m || (!m[1] && !m[2])) return;
+    arreterVisite();
+    selectionner(m[1] ? (m[1] === 'toit' ? TOIT : Number(m[1].slice(1))) : null, m[2] || null);
   }
 
   function selectionner(k, s) {
@@ -1683,7 +1943,6 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
 
   function ouvrirResultats(ouvert) {
     deroulant.hidden = !ouvert;
-    champ.setAttribute('aria-expanded', String(ouvert));
   }
 
   function afficherResultats() {
@@ -1972,19 +2231,26 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
     }
   }
 
+  // La boussole : la direction, à l'écran, qui va du centre du bâtiment vers le côté mer.
+  function angleMer() {
+    projeter(0, base.ty, 0, P1);
+    projeter(60, base.ty, 0, P2);
+    return Math.round(Math.atan2(P2.y - P1.y, P2.x - P1.x) * 180 / Math.PI / 3) * 3;
+  }
+
   let texteHud = '';
   function majHud() {
-    const cap = Math.round(((cam.cap * 180 / Math.PI) % 360 + 360) % 360) % 360;
+    const mer = angleMer();
     const incl = Math.round(cam.incl * 180 / Math.PI);
     const zoom = (ecran.reculDefaut / cam.recul).toFixed(1).replace('.', ',');
     const sel = etat.sel;
     const vue = sel.k === null && sel.s === null ? 'TOUT'
       : [sel.k === null ? null : (sel.k === TOIT ? 'TOIT' : 'N' + (sel.k < 0 ? '−1' : sel.k)),
         sel.s === null ? null : SECTEURS.find(x => x.id === sel.s).nom.toUpperCase()].filter(Boolean).join(' · ');
-    const texte = cap + '|' + incl + '|' + zoom + '|' + vue;
+    const texte = mer + '|' + incl + '|' + zoom + '|' + vue;
     if (texte === texteHud) return;
     texteHud = texte;
-    $('hud-cap').textContent = String(cap).padStart(3, '0') + '°';
+    $('hud-mer').style.transform = 'rotate(' + mer + 'deg)';
     $('hud-incl').textContent = (incl < 0 ? '−' : '') + String(Math.abs(incl)).padStart(2, '0') + '°';
     $('hud-zoom').textContent = '×' + zoom;
     $('hud-sel').textContent = vue;
@@ -2003,6 +2269,8 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
     cam.incl += (cam.inclVise - cam.incl) * lisse;
     cam.recul += (cam.reculVise - cam.recul) * lisse;
     etat.explosion += ((etat.eclate ? 1 : 0) - etat.explosion) * (calme ? 1 : 1 - Math.exp(-dt * 5));
+    const helico = etatHelico(t);
+    etat.phaseRotor += dt * 22 * (helico ? helico.rotor : 0);
 
     const fondu = calme ? 1 : 1 - Math.exp(-dt * 9);
     cellules.forEach(c => {
@@ -2051,6 +2319,8 @@ details summary { min-height: 32px; cursor: pointer; color: var(--faisceau); fon
   remplirReperes();
   rendreFiche();
   majBoutons();
+  lireLien();
+  window.addEventListener('hashchange', lireLien);
   redimensionner();
   if (window.ResizeObserver) new ResizeObserver(redimensionner).observe($('ecran'));
   else window.addEventListener('resize', redimensionner);

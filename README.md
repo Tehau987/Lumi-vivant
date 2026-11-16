@@ -124,11 +124,15 @@ même hors ligne. Avec le capteur PC lancé, elle est aussi sur
 
 - Glisse pour tourner, molette ou pincement pour zoomer, touche un étage pour voir ses services.
 - Le pupitre choisit un niveau (−1 à 3, toit) ou un secteur (Pae mou'a côté montagne,
-  centre et nef, Pae miti côté mer) ; **Vue éclatée** sépare les étages.
+  centre et nef, Pae miti côté mer) ; les services de l'étage choisi s'écrivent alors
+  dans l'hologramme. **Vue éclatée** sépare les étages.
+- **Lien direct** : ajoute `#n2` à l'adresse (ou `#n0-mer`, `#n-1`, `#toit`…) pour ouvrir
+  la page directement sur cet étage.
 - **Trouver un service** (en haut) allume l'étage d'un service : tape « urgences »,
   « labo », « parking »… ; **Visite guidée** passe tout seul d'un niveau à l'autre.
 - **Pyramide** affiche quatre vues pour une petite pyramide transparente posée, pointe
   en bas, au centre d'un téléphone ou d'une tablette : le bâtiment flotte au milieu,
   comme un vrai hologramme (gabarit maison : 6 cm en bas, 1 cm en haut, 3,5 cm de haut).
 - C'est un schéma non officiel, fait d'après des documents publics : pour corriger un
-  service, modifie le tableau `SERVICES` en haut du script de la page.
+  service, modifie le tableau `SERVICES` en haut du script de la page. Si une ligne a une
+  faute (niveau ou secteur inconnu), un message en haut de la page le signale.
