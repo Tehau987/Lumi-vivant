@@ -22,6 +22,7 @@ disque, connexion) et le temps d'écran de son propriétaire. La vision est dans
 | `js/capteurs.js` | Mesures du navigateur + liaison au capteur PC (`/api/sante`, `/api/historique`) ; renvoie des mesures normalisées |
 | `js/app.js` | Boucle de vie toutes les 5 s, affichage, carnet de santé, pause, réglages, sauvegarde |
 | `capteur/lumi_capteur.py` | Capteur PC : mesures système, suivi d'usage, historique, petit serveur sur 127.0.0.1 |
+| `hologramme-chpf/index.html` | Page à part, sans lien avec Lumi : hologramme 3D schématique du bâtiment du CHPF, tout dans un fichier (canevas 2D) ; ses données sont en haut du script |
 
 Le flux : `capteurs.read()` → `vie.computeVitals()` → classes `c-…` sur Lumi + jauges.
 
